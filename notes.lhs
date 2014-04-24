@@ -1,6 +1,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Ignor this preamble
-%
+%              Ignor this preamble               %
+%                                                %                    
 \documentclass{article}
 \newtheorem{example}{Example}
 \newcommand{\fold}{\text{fold}}
@@ -8,23 +8,10 @@
 \usepackage{semantic, multicol}
 %include polycode.fmt
 %format Mu = "\mu"
-
-\newcommand{\BigBox}[5]{
-  \noindent
-  \begin{center}
-    \hspace*{-0.25in}\framebox[5.5in]{
-      \vbox{
-        \hbox to 5.25in { \textbf{#1} \hfill }
-        \vspace{1mm}
-        \hbox to 5.25in { #2 \hfill }
-        \vspace{4mm}
-        \hbox to 5.25in { {\Large \hfill #3  \hfill} }
-        \vspace{2mm}
-        \hbox to 5.25in { {\it #4 \hfill #5} }
-        } } \end{center}\vspace*{4mm}}
-  
-
+%Command for the title
+\newcommand{\BigBox}[5]{\noindent \begin{center} \hspace*{-0.25in}\framebox[5.5in]{ \vbox{ \hbox to 5.25in { \textbf{#1} \hfill } \vspace{1mm} \hbox to 5.25in { #2 \hfill } \vspace{4mm} \hbox to 5.25in { {\Large \hfill #3  \hfill} } \vspace{2mm}  \hbox to 5.25in { {\it #4 \hfill #5} } } } \end{center}\vspace*{4mm}}
 \newcommand{\lecture}[5]{\BigBox{#1}{Lecturer: #2}{Lecture: #3}{#4}{Scribes: #5}}
+
 %if False
 
 >{-# LANGUAGE FlexibleInstances, GADTs, ExistentialQuantification, EmptyDataDecls #-}
@@ -32,8 +19,8 @@
 
 %endif
 \begin{document}
-%
-%End of preamble
+%                                                %
+%              End of preamble                   %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \lecture{COS 510: Programming Languages}{Michael Greenberg}{20}{21 of April, 2014}{Santiago Cuellar, Jonathan Balkind}
 
