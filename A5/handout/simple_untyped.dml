@@ -1,0 +1,1 @@
+(fun id x = x end)(5) + (fun id x = x end)(5)
