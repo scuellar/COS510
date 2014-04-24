@@ -43,16 +43,16 @@ IntList &=& \mu \alpha. () + (Int * \alpha) \\
 
 While the above can work, we would prefer to define things in an inductive way. We introduce the fold and unfold expressions to handle this. We need both typing rules and operational semantics for these.
 
-$$e ::= ...\ ||\ fold_{\mu}\ e\ ||\ unfold_{\mu}\ e$$
+$$e ::= ...\ ||\ \text{fold}_{\mu}\ e\ ||\ \text{unfold}_{\mu}\ e$$
 
 \begin{equation}
 \inference{U = \mu \alpha . \tau  \hspace{0.5cm}  G \vdash e : U}
-{G \vdash unfold_\mu e : \tau[U/\alpha]}
+{G \vdash \text{unfold}_\mu e : \tau[U/\alpha]}
 \end{equation}
 
 \begin{equation}
 \inference{U = \mu \alpha . \tau  \hspace{0.5cm}  G \vdash e : \tau[U/\alpha]}
-{G \vdash fold_\mu e : U}
+{G \vdash \text{fold}_\mu e : U}
 \end{equation}
 
 The definitions of fold and unfold mirror one another, with one to compose a list and the other to decompose.
