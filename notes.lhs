@@ -14,9 +14,11 @@
 
 \section{Defining a Language with Recursive Types}
 
-We must first define the types supported in the language. B represents the basic types (unit, int, bool, etc.), we have function types, sum and product types. The new types here are $\alpha$, which is a type variable, and $\mu \alpha.\tau$, which is a recursive type. $\alpha$ is a type variable because we substitute in a type, like with the x in lambdas, where we substitute in a value for x.
+So far we have only seen the simply typed lambda calculus $\lambda^{-->}$, sometimes with some extra constructors. Such type systems are useful, but not expresive enough to have recursion (and thus are not Turing complete). Today we will define a stronger type system by including recursive types. We beggin by defining the types supported in the language.
 
 $$\tau ::= B\ ||\ \tau_1\ ->\ \tau_2\ ||\ \alpha\ ||\ \mu \alpha. \tau\ ||\ \tau_1 * \tau_2\ ||\ \tau_1 + \tau_2$$
+
+We include some basic type $B$ such as unit, int, bool, etc. We also include function types, sum and product types. Further, we include new types $\alpha$, which is a type variable, and $\mu \alpha.\tau$, which is a recursive type. $\alpha$ is a type variable because we may substitute in a type, like with the $x$ variables in lambdas, where we substitute in a value for $x$.
 
 Defining a recursive type looks something like this, where the $T'$ is replaced with T in the same way that free variables are bound in lambda expressions. Note that T here defines a family of types of different lengths, not just a single type.:
 
