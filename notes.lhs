@@ -8,7 +8,6 @@
 %if False
 
 >{-# LANGUAGE FlexibleInstances, GADTs, ExistentialQuantification, EmptyDataDecls #-}
-> module Mu where
 
 %endif
 
@@ -189,8 +188,8 @@ Now we would like to define the type of generic lists, which adds a type paramet
 
 We want to define a list spine dependent on the type of the list:
 
-> data ListSpine a x = Nil | Cons a x
-> type List a = Mu (ListSpine a)
+> data GenericListSpine a x = GenericNil | GenericCons a x
+> type GenericList a = Mu (GenericListSpine a)
 
 Based on the approach we've used so far, we could build more complex data structures too.
 
@@ -210,7 +209,7 @@ The definitions get easier the more you write because it's very mechanical. The 
 
 \section{Shallow Embedding of a Dynamic Language}
 
-In the homework we talked about embedding dynamic types in static types and we wrote the interpreter in the typical way, with the syntax tree etc. This is called a deep embedding, because we built a whole model of the embedded language in the host programming language. There are also shallow embeddings, where the embedded types are the types from your language. Shallow embeddings are nice but it's much harder to reazon about.
+In the homework we talked about embedding dynamic types in static types and we wrote the interpreter in the typical way, with the syntax tree etc. This is called a deep embedding, because we built a whole model of the embedded language in the host programming language. There are also shallow embeddings, where the embedded types are the types from your language. Shallow embeddings are nice but it's much harder to reason about.
 
 \noindent We're going to do a shallow embedding of dynamic types
 
@@ -225,6 +224,7 @@ $$
 In the homework there are \emph{tag} and \emph{as} terms and we need to write those in Haskell.
 \begin{enumerate}
 \item Tags:
+
 > b :: Bool -> Dyn
 > b = Fold . B -- Which means |b x = Fold $ B x|
 
@@ -271,7 +271,7 @@ To define aritmetic operations, we define a handy lift operator that allows us t
 > liftBin :: (a -> a -> b) -> (Dyn -> a) -> (b -> Dyn) -> Dyn -> Dyn -> Dyn
 > liftBin op untag tag v1 v2 = tag $ op (untag v1) (untag v2)
 
-Now we can use |liftBin| to embedd the arithmetic expressions of our dynamic lenguage into Haskell. 
+Now we can use |liftBin| to embed the arithmetic expressions of our dynamic lenguage into Haskell. 
 
 > plus :: Dyn -> Dyn -> Dyn
 > plus = liftBin (+) asInt i -- Here |i| is the tag function
@@ -285,7 +285,7 @@ Now we can use |liftBin| to embedd the arithmetic expressions of our dynamic len
 > eq :: Dyn -> Dyn -> Dyn
 > eq = liftBin (==) asInt b
 
-We do the same for function application and lambda
+We do the same for function application and lambda expressions.
 
 > app :: Dyn -> Dyn -> Dyn
 > app v1 v2 = asFun v1 v2
@@ -295,18 +295,18 @@ We do the same for function application and lambda
 
 This is the essence of shallow embeddings. We use all of Haskell's built in functionality, we just add some coercions.
 
-\section{Writting programs}
+\section{Writing programs}
 
-We can now write some programs in our dynamic language. So far we haven't defined anything recursive, lets beggin with the trivially looping program, known as the $\Omega$ combinator
+We can now write some programs in our dynamic language. So far we haven't defined anything recursive, so let's begin with the trivially looping program, known as the $\Omega$ combinator.
 
 > omega = app (lam (\x -> app x x)) (lam (\x -> app x x))
 
-Now lets define the useful $Y$ combinator (or fixed-point combinator).
+Now let's define the useful $Y$ combinator (or fixed-point combinator).
 
 > fix = lam (\f -> app  (lam (\x -> app f (app x x)))
 >                       (lam (\x -> app f (app x x))))
 
-Using the the Y combinator we can define the program that computes the Fibonacci numbers
+Using the Y combinator we can define the program that computes the factorial of a number:
 
 > factorial = app fix $ lam (\fact ->
 >                             lam (\n ->
@@ -314,16 +314,21 @@ Using the the Y combinator we can define the program that computes the Fibonacci
 >                                   (i 1) 
 >                                   (n `times` app fact (n `minus` (i 1)))))
 
+We can also define the program that computes the fibonacci sequence of a number:
+
+> fib = app fix $ lam (\fib -> 
+>                       lam (\n -> 
+>                               cond (n `eq` (i 0))
+>                               (i 1) 
+>                               (cond (n `eq` (i 1)) (i 1) 
+>                               ((app fib (n `minus` (i 2))) 
+>                               `plus` 
+>                               (app fib (n `minus` (i 1)))))))
+
 
 \section{Generalized Algebraic Data Type}
 
 The type systems we have been working with, can be though of as algebraic structures. There's a unit ($0$), a plus operator ($+$), a times operator ($*$), an arrow ($->$) and a fixed point operator ($\mu$), which is what makes an algebra of type. GADTs allow us to define  dynamic types such as lists that know their own length in their type.
-
-%if False
-
-> module NList where
-
-%endif
 
 > data Z
 > data S x
@@ -348,11 +353,11 @@ $Nil$ is a list of length zero for any type a and $Cons$ takes whatever the list
 > sTail (Cons x xs) = xs
 
 
--- Bounded natural numbers. I.e. a number m that 
---    is less than some other number n
+Bounded natural numbers. I.e. a number m that is less than some other number n
+
 > data LT n where
 >    Z :: LT (S n)
->     S :: LT n -> LT (S n)
+>    S :: LT n -> LT (S n)
 
 > coerce :: LT n -> LT (S n)
 > coerce Z = Z
@@ -365,7 +370,7 @@ $Nil$ is a list of length zero for any type a and $Cons$ takes whatever the list
 > instance Show (LT n) where
 >   show n = show (toInt n)
 
--- only lookup at a position less than the length of the list
+only lookup at a position less than the length of the list
 
 > cLookup :: LT n -> List m a -> Maybe a
 > cLookup Z (Cons x xs) = Just x
