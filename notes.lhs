@@ -15,7 +15,6 @@
 %if False
 
 >{-# LANGUAGE FlexibleInstances, GADTs, ExistentialQuantification, EmptyDataDecls #-}
-> module Mu where
 
 %endif
 \begin{document}
@@ -152,10 +151,10 @@ We could also try this other \emph{wrong} definition:
 
 Both definitions are ill formed because they used the defined term inside the definition. Instead we can use the following definition:
 
-> data IntListSpine a = INil | ICons Int a
+> data IntListSpine a = IntNil | IntCons Int a
 > type IntList = Mu IntListSpine -- Taking the fixed point over the spine
 
-There are two interpretations of this idea: The natural one is to start with the smallest set (i.e. with $\{ INil \}$) and build it up (using $ICons$ in all existing lists). The other way is to see $\mu$ as the least fixed point of $IntListSpine$. The least fixed point here is the smallest type that is closed under $ICons$. Does that least fixed point exist? Is it unique? The answer is yes and there's an amazing thing called a $\mu$-calculus, which is a calculus of least and greatest fixed-point data structures. There are also languages which use the greatest fixed-point, in this case the largest type closed under $ICons$. In such languages, instead of lists, we would get streams of $int$s from the definition above. As an exercise, one may show that streams are closed under $ICons$.
+There are two interpretations of this idea: The natural one is to start with the smallest set (i.e. with $\{ IntNil \}$) and build it up (using $IntCons$ in all existing lists). The other way is to see $\mu$ as the least fixed point of $IntListSpine$. The least fixed point here is the smallest type that is closed under $IntCons$. Does that least fixed point exist? Is it unique? The answer is yes and there's an amazing thing called a $\mu$-calculus, which is a calculus of least and greatest fixed-point data structures. There are also languages which use the greatest fixed-point, in this case the largest type closed under $IntCons$. In such language, instead of lists, we would get streams of $int$s from the definition above. As an exercise, one may show that streams are closed under $IntCons$.
 
 %if False
 What's the difference between data, type and newtype? @@Add explanation here!
@@ -172,18 +171,18 @@ There is an abstraction of types which focuses on the number of type variable ar
 We've now got the types (and even kinds!) we need - let's define some constructors for the lists:
 
 > nil :: IntList
-> nil = Fold INil
+> nil = Fold IntNil
 
 > cons :: Int -> IntList -> IntList
-> cons x ls = Fold $ ICons x ls
+> cons x ls = Fold $ IntCons x ls
 
 Next we can add some functionality to our lists. To use the integers inside the list, we need to unpack the list. The following handy functions will do the job of unfolding lists properly
 
 > match :: IntList -> (() -> a) -> (Int -> IntList -> a) -> a
 > match ls emptyCase consCase = 
 >   case unFold ls of
->     INil -> emptyCase ()
->     ICons hd tl -> consCase hd tl
+>     IntNil -> emptyCase ()
+>     IntCons hd tl -> consCase hd tl
 
 With $match$ writing functions for lists is easy
 
@@ -197,8 +196,8 @@ With $match$ writing functions for lists is easy
 > len ls = match ls (\() -> 0) (\_ ls' -> 1 + len ls')
 
 > append :: IntList -> IntList -> IntList
-> append (Fold INil) ls2 = ls2
-> append (Fold (ICons i1 ls1)) ls2 = append ls1 $ cons i1 ls2
+> append (Fold IntNil) ls2 = ls2
+> append (Fold (IntCons i1 ls1)) ls2 = append ls1 $ cons i1 ls2
 
 > instance Show IntList where    
 >   show ls = match ls 
@@ -371,15 +370,15 @@ We shall build lists that know their own length in their type. To do so, we firs
 
 Using this type-level definition of the naturals, we can construct length-indexed lists.
 
-> data List n b where 
->   Nil  :: List Z a 
->   Cons :: a -> List n a -> List (S n) a
+> data IList n b where 
+>   INil  :: IList Z a 
+>   ICons :: a -> IList n a -> IList (S n) a
 
 %if False
 
-> instance Show b => Show (List n b) where
->     show Nil = "Nil"
->     show (Cons x xs) = "(Cons " ++ show x ++ " " ++ show xs ++ ")"
+> instance Show b => Show (IList n b) where
+>     show INil = "Nil"
+>     show (ICons x xs) = "(Cons " ++ show x ++ " " ++ show xs ++ ")"
 
 %endif
 
@@ -388,11 +387,11 @@ Using this type-level definition of the naturals, we can construct length-indexe
 Lets write functions head and tail for our lists. Until now, when writing such functions, we had to check for empty lists and throw an exception in such a case. We can avoid using exceptions with length-indexed lists
 
 
-> sHead :: List (S n) b -> b
-> sHead (Cons x xs) = x
+> sHead :: IList (S n) b -> b
+> sHead (ICons x xs) = x
 
-> sTail :: List (S n) b -> List n b
-> sTail (Cons x xs) = xs
+> sTail :: IList (S n) b -> IList n b
+> sTail (ICons x xs) = xs
 
 Another interesting data type is a bounded natural number, a number $m$ that is less than some other number $n$ determined by its type
 
@@ -421,29 +420,32 @@ Notice that in the case $Z$, the function returns the same $Z$ \emph{but changes
 
 Let's now define a lookup function for our length-indexed lists using our bounded naturals. We could use the standard look up, where we have to use the Maybe monad for safety
 
-> cLookup :: LT n -> List m a -> Maybe a
-> cLookup Z (Cons x xs) = Just x
-> cLookup (S n) (Cons x xs) = cLookup n xs
-> cLookup _ Nil = Nothing
+> cLookup :: LT n -> IList m a -> Maybe a
+> cLookup Z (ICons x xs) = Just x
+> cLookup (S n) (ICons x xs) = cLookup n xs
+> cLookup _ INil = Nothing
 
 But since we are using length-indexed lists and bounded naturals, there is a better way to implement safe lookup. We will only lookup at a position if its type indicates that it's less than the length of the list.
 
-> sLookup :: LT n -> List n a -> a
-> sLookup Z     (Cons x xs) = x
-> sLookup (S n) (Cons x xs) = sLookup n xs
+> sLookup :: LT n -> IList n a -> a
+> sLookup Z     (ICons x xs) = x
+> sLookup (S n) (ICons x xs) = sLookup n xs
 
 
 % I don't know what this following code does, we could remove it.
-%if False 
+%if False
 
-> cLookup' :: LT n -> List m a -> Maybe (LT m)
-> cLookup' Z (Cons x xs)     = Just Z
-> cLookup' (S n) (Cons x xs) = do n' <- (cLookup' n xs)
->                                 return (S n')
-> cLookup' _ Nil = Nothing
+> cLookup' :: LT n -> IList m a -> Maybe (LT m)
+> cLookup' Z (ICons x xs)     = Just Z
+> cLookup' (S n) (ICons x xs) = do n' <- (cLookup' n xs)
+>                                  return (S n')
+> cLookup' _ INil = Nothing
  
-> x :: List (S (S Z)) Int
-> x = (Cons 1 (Cons 2 Nil)) 
+> x :: IList (S (S Z)) Int
+> x = (ICons 1 (ICons 2 INil))
+ 
+> z :: IList (S (S (S Z))) Int
+> z = (ICons 1 (ICons 2 (ICons 3 INil))) 
 
 > y :: LT (S (S (S Z)))
 > y = (S (S Z))
