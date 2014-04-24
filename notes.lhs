@@ -59,7 +59,7 @@ $$
 
 \subsection{An Inductive Definition of a Recursive Type for Lists}
 
-While the above can work, we would prefer to define things in an inductive way. We introduce the fold and unfold expressions to handle this. We add those constructors to the toolkit of expressions we have been handeling and we introduce typing rules and operational semantics for these.
+While the above can work, we would prefer to define things in an inductive way. We introduce the fold and unfold expressions to handle this. We add those constructors to the toolkit of expressions we have been handling and we introduce typing rules and operational semantics for these.
 
 $$e ::= ...\ ||\ \fold_{\mu}\ e\ ||\ \unfold_{\mu}\ e$$
 
@@ -125,7 +125,7 @@ A Haskell list may look like:
 But under the hood, it has a different representation which looks more like our definition for the construction of that list:
 < l = cons 1 (cons 2 nil)
 
-Based on what we've seen, we can tell that the unfold of a fold should step to what's inside. In fact, it looks like: $unfold_\mu (fold_\mu\ e) --> e$
+Based on what we've seen, we can tell that the unfold of a fold should step to what's inside. In fact, it looks like: $\unfold_\mu (\fold_\mu\ e) --> e$
 
 Unfortunately, Michael ran out of time here, so we now move on to the Haskell.
 
@@ -155,7 +155,7 @@ Both definitions are ill formed because they used the defined term inside the de
 > data IntListSpine a = INil | ICons Int a
 > type IntList = Mu IntListSpine -- Taking the fixed point over the spine
 
-There are two interpretations of this idea: The natural one is to start with the smallest set (i.e. with $\{ INil \}$) and build it up (using $ICons$ in all existing lists). The other way is to see $\mu$ as the least fixed point of $IntListSpine$. The least fixed point here is the smallest type that is closed under $ICons$. Does that least fixed point exist? Is it unique? The answer is yes and there's an amazing thing called a $\mu$-calculus, which is a calculus of least and greatest fixed-point data structures. There are also languages which use the greatest fixed-point, in this case the largest type closed under $ICons$. In such language, instead of lists, we would get streams of $int$s from the definition above. As an exercise, one may show that streams are closed under $ICons$.
+There are two interpretations of this idea: The natural one is to start with the smallest set (i.e. with $\{ INil \}$) and build it up (using $ICons$ in all existing lists). The other way is to see $\mu$ as the least fixed point of $IntListSpine$. The least fixed point here is the smallest type that is closed under $ICons$. Does that least fixed point exist? Is it unique? The answer is yes and there's an amazing thing called a $\mu$-calculus, which is a calculus of least and greatest fixed-point data structures. There are also languages which use the greatest fixed-point, in this case the largest type closed under $ICons$. In such languages, instead of lists, we would get streams of $int$s from the definition above. As an exercise, one may show that streams are closed under $ICons$.
 
 %if False
 What's the difference between data, type and newtype? @@Add explanation here!
@@ -212,8 +212,8 @@ Now we would like to define the type of generic lists, which adds a type paramet
 
 We want to define a list spine dependent on the type of the list:
 
-> data ListSpine a x = Nil | Cons a x
-> type List a = Mu (ListSpine a)
+> data GenericListSpine a x = GenericNil | GenericCons a x
+> type GenericList a = Mu (GenericListSpine a)
 
 Based on the approach we've used so far, we could build more complex data structures too.
 
@@ -231,7 +231,7 @@ The definitions get easier the more you write because it's very mechanical. The 
 
 \section{Shallow Embedding of a Dynamic Language}
 
-In the homework we talked about embedding dynamic types in static types and we wrote the interpreter in the typical way, with the syntax tree etc. This is called a deep embedding, because we built a whole model of the embedded language in the host programming language. There are also shallow embeddings, where the embedded types are the types from your language. Shallow embeddings are nice but it's much harder to reazon about.
+In the homework we talked about embedding dynamic types in static types and we wrote the interpreter in the typical way, with the syntax tree etc. This is called a deep embedding, because we built a whole model of the embedded language in the host programming language. There are also shallow embeddings, where the embedded types are the types from your language. Shallow embeddings are nice but it's much harder to reason about.
 
 \noindent We're going to do a shallow embedding of dynamic types
 
@@ -246,6 +246,7 @@ $$
 In the homework there are \emph{tag} and \emph{as} terms and we need to write those in Haskell.
 \begin{enumerate}
 \item Tags:
+
 > b :: Bool -> Dyn
 > b = Fold . B -- Which means |b x = Fold $ B x|
 
@@ -294,7 +295,7 @@ To define aritmetic operations, we define a handy lift operator that allows us t
 > liftBin :: (a -> a -> b) -> (Dyn -> a) -> (b -> Dyn) -> Dyn -> Dyn -> Dyn
 > liftBin op untag tag v1 v2 = tag $ op (untag v1) (untag v2)
 
-Now we can use |liftBin| to embedd the arithmetic expressions of our dynamic lenguage into Haskell. 
+Now we can use |liftBin| to embed the arithmetic expressions of our dynamic lenguage into Haskell. 
 
 > plus :: Dyn -> Dyn -> Dyn
 > plus = liftBin (+) asInt i -- Here |i| is the tag function
@@ -308,7 +309,7 @@ Now we can use |liftBin| to embedd the arithmetic expressions of our dynamic len
 > eq :: Dyn -> Dyn -> Dyn
 > eq = liftBin (==) asInt b
 
-We do the same for function application and lambda
+We do the same for function application and lambda expressions
 
 > app :: Dyn -> Dyn -> Dyn
 > app v1 v2 = asFun v1 v2
@@ -320,16 +321,16 @@ This is the essence of shallow embeddings. We use all of Haskell's built in func
 
 \section{Writing Programs in the Dynamic Language}
 
-We can now write some programs in our dynamic language. So far we haven't defined anything recursive, lets beggin with the trivially looping program, known as the $\Omega$ combinator
+We can now write some programs in our dynamic language. So far we haven't defined anything recursive, so let's begin with the trivially looping program, known as the $\Omega$ combinator
 
 > omega = app (lam (\x -> app x x)) (lam (\x -> app x x))
 
-Now lets define the useful $Y$ combinator (or fixed-point combinator).
+Now let's define the useful $Y$ combinator (or fixed-point combinator).
 
 > fix = lam (\f -> app  (lam (\x -> app f (app x x)))
 >                       (lam (\x -> app f (app x x))))
 
-Using the the Y combinator we can define the program that computes the Fibonacci numbers
+Using the Y combinator we can define the program that computes the factorial of a number:
 
 > factorial = app fix $ lam (\fact ->
 >                             lam (\n ->
@@ -337,16 +338,31 @@ Using the the Y combinator we can define the program that computes the Fibonacci
 >                                   (i 1) 
 >                                   (n `times` app fact (n `minus` (i 1)))))
 
+We can also define the program that computes the fibonacci sequence of a number:
+
+> fib = app fix $ lam (\fib -> 
+>                       lam (\n -> 
+>                               cond (n `eq` (i 0))
+>                               (i 1) 
+>                               (cond (n `eq` (i 1)) (i 1) 
+>                               ((app fib (n `minus` (i 2))) 
+>                               `plus` 
+>                               (app fib (n `minus` (i 1)))))))
+
+Want to try out these functions? Load the Literate Haskell script into GHCI and try running something like:
+
+< asInt (app fib (i 4))
+< asInt (app factorial (i 6))
 
 \section{Generalized Algebraic Data Type}
 
-The type systems we have been working with, can be though of as algebraic structures. There's a unit ($0$), a plus operator ($+$), a times operator ($*$), an arrow ($->$) and a fixed point operator ($\mu$), which is what makes an algebra of types. Generalized Algebraic Data Type (GADTs) are type-indexed type systems, that means type systems where types depend on other types. GADTs are not as general as dependent types, where types can depend on values, but with an embedded language we can simulate values at the type-level and aproximate dependent types. GADTs allow us to define  dynamic types such as length-indexed lists or bounded natural numbers which we construct bellow.
+The type systems we have been working with, can be thought of as algebraic structures. There's a unit ($0$), a plus operator ($+$), a times operator ($*$), an arrow ($->$) and a fixed point operator ($\mu$), which is what makes an algebra of types. Generalized Algebraic Data Type (GADTs) are type-indexed type systems, that means type systems where types depend on other types. GADTs are not as general as dependent types, where types can depend on values, but with an embedded language we can simulate values at the type-level and aproximate dependent types. GADTs allow us to define  dynamic types such as length-indexed lists or bounded natural numbers which we construct bellow.
 
 We shall build lists that know their own length in their type. To do so, we first need a type-level representation of the length, so we start by defining the types for each natural number
 
 %if False
 
-> module NList where
+%> module NList where
 
 %endif
 
@@ -360,9 +376,11 @@ Using this type-level definition of the naturals, we can construct length-indexe
 >   Cons :: a -> List n a -> List (S n) a
 
 %if False
+
 > instance Show b => Show (List n b) where
 >     show Nil = "Nil"
 >     show (Cons x xs) = "(Cons " ++ show x ++ " " ++ show xs ++ ")"
+
 %endif
 
 \noindent $Nil$ is a list of length zero for any type $a$ and $Cons$ takes an element of type $a$, a list of length $n$ and gives you a list of length greater than $n+1$.
@@ -376,15 +394,17 @@ Lets write functions head and tail for our lists. Until now, when writing such f
 > sTail :: List (S n) b -> List n b
 > sTail (Cons x xs) = xs
 
-Another interesting data type is bounded natural number,  a number $m$ that is less than some other number $n$ determined by it's type
+Another interesting data type is a bounded natural number, a number $m$ that is less than some other number $n$ determined by its type
 
 > data LT n where
 >    Z :: LT (S n)
 >    S :: LT n -> LT (S n)
 
 %if False
+
 > instance Show (LT n) where
 >   show n = show (toInt n)
+
 %endif
 
 If $m < n$ then it should be true that $m < n + 1$. The following function implements that relation. 
@@ -399,14 +419,14 @@ Notice that in the case $Z$, the function returns the same $Z$ \emph{but changes
 > toInt Z = 0
 > toInt (S n) = 1 + toInt n
 
-Let's now define a lookup function for our length-indexed lists using our bounded naturals. We could use the stadard look up, where we have to use the monad maybe for safety
+Let's now define a lookup function for our length-indexed lists using our bounded naturals. We could use the standard look up, where we have to use the Maybe monad for safety
 
 > cLookup :: LT n -> List m a -> Maybe a
 > cLookup Z (Cons x xs) = Just x
 > cLookup (S n) (Cons x xs) = cLookup n xs
 > cLookup _ Nil = Nothing
 
-But since we are using length-indexed lists and bounded naturals, there is a better way to implement safe lookup. We will only lookup at position if it's type indicates that it's less than the length of the list.
+But since we are using length-indexed lists and bounded naturals, there is a better way to implement safe lookup. We will only lookup at a position if its type indicates that it's less than the length of the list.
 
 > sLookup :: LT n -> List n a -> a
 > sLookup Z     (Cons x xs) = x
@@ -415,6 +435,7 @@ But since we are using length-indexed lists and bounded naturals, there is a bet
 
 % I don't know what this following code does, we could remove it.
 %if False 
+
 > cLookup' :: LT n -> List m a -> Maybe (LT m)
 > cLookup' Z (Cons x xs)     = Just Z
 > cLookup' (S n) (Cons x xs) = do n' <- (cLookup' n xs)
@@ -426,6 +447,8 @@ But since we are using length-indexed lists and bounded naturals, there is a bet
 
 > y :: LT (S (S (S Z)))
 > y = (S (S Z))
+
 %endif
+
 
 \end{document}
