@@ -1,6 +1,8 @@
 \documentclass{article}
 \newtheorem{example}{Example}
-\usepackage{semantic}
+\newcommand{\fold}{\text{fold}}
+\newcommand{\unfold}{\text{unfold}}
+\usepackage{semantic, multicol}
 %include polycode.fmt
 %format Mu = "\mu"
 \begin{document}
@@ -14,58 +16,60 @@
 
 \section{Defining a Language with Recursive Types}
 
-So far we have only seen the simply typed lambda calculus $\lambda^{-->}$, sometimes with some extra constructors. Such type systems are useful, but not expresive enough to have recursion (and thus are not Turing complete). Today we will define a stronger type system by including recursive types. We beggin by defining the types supported in the language.
+So far we have only seen the simply typed lambda calculus $\lambda^{->}$, sometimes with some extra constructors. Such type systems are useful, but not expressive enough to have recursion (and thus are not Turing complete). Today we will define a stronger type system by including recursive types. We begin by defining the types supported in the language.
 
 $$\tau ::= B\ ||\ \tau_1\ ->\ \tau_2\ ||\ \alpha\ ||\ \mu \alpha. \tau\ ||\ \tau_1 * \tau_2\ ||\ \tau_1 + \tau_2$$
 
 We include some basic type $B$ such as unit, int, bool, etc. We also include function types, sum and product types. Further, we include new types $\alpha$, which is a type variable, and $\mu \alpha.\tau$, which is a recursive type. $\alpha$ is a type variable because we may substitute in a type, like with the $x$ variables in lambdas, where we substitute in a value for $x$.
 
-Defining a recursive type looks something like this, where the $T'$ is replaced with T in the same way that free variables are bound in lambda expressions. Note that T here defines a family of types of different lengths, not just a single type.:
-
-\begin{math}
+Defining a recursive type looks something like this
+$$
 \begin{array}{lcr}
 T &=& \mu \alpha. T' \\
   &=& T' \lbrack T/\alpha \rbrack \\
 \end{array}
-\end{math}
+$$
+where the $\alpha$ in $T'$ is replaced with $T$ in the same way that free variables are bound in lambda expressions. Note that $T$ here defines a family of types of different lengths, not just a single type. We will focus on the smallest one.
 
 There is no polymorphism here (but we see that in the next lecture!), as there is no quantifier on the type variable $\alpha$. However, we can define infinite types (even though memory is finite) using this method. For example, we might define a list of ints as follows:
 
-\begin{math}
+$$
 \begin{array}{lcl}
 IntList &=& \mu \alpha. () + (Int * \alpha) \\
  &=& () \\
  &=& () + Int * () \\
  &=& () + (Int * (Int * ())) \\
 \end{array}
-\end{math}
+$$
 
 \subsection{An Inductive Definition of a Recursive Type for Lists}
 
 While the above can work, we would prefer to define things in an inductive way. We introduce the fold and unfold expressions to handle this. We need both typing rules and operational semantics for these.
 
-$$e ::= ...\ ||\ fold_{\mu}\ e\ ||\ unfold_{\mu}\ e$$
+$$e ::= ...\ ||\ \fold_{\mu}\ e\ ||\ \unfold_{\mu}\ e$$
 
-\begin{equation}
+\begin{multicols}{2}
+$$
 \inference{U = \mu \alpha . \tau  \hspace{0.5cm}  G \vdash e : U}
-{G \vdash unfold_\mu e : \tau[U/\alpha]}
-\end{equation}
+{G \vdash \unfold_\mu e : \tau[U/\alpha]}
+$$
 
-\begin{equation}
+$$
 \inference{U = \mu \alpha . \tau  \hspace{0.5cm}  G \vdash e : \tau[U/\alpha]}
-{G \vdash fold_\mu e : U}
-\end{equation}
+{G \vdash \fold_\mu e : U}
+$$
+\end{multicols}
 
 The definitions of fold and unfold mirror one another, with one to compose a list and the other to decompose.
 
 \subsection{Defining an IntList}
 
-\begin{math}
+$$
 \begin{array}{lcl}
 IntList &=& () + Int * IntList \\
 \mu \alpha &=& () + Int * \alpha \\
 \end{array}
-\end{math}
+$$
 
 In the previous lecture, we saw the first of the above definitions when we were trying to define what an IntList should look like. However, it requires a name for the type and hence lacks generality. Notice that the new definition is anonymous in the same way that lambdas are anonymous.
 
@@ -76,7 +80,7 @@ The language we are defining here has type erasure, meaning that the types can b
 
 We first define the nil and cons constructors for our list:
 
-\begin{math}
+$$
 \begin{array}{lcl}
 nil &=& fold_{IntList}\ L () : () + Int * IntList\\
 &&\\
@@ -85,11 +89,11 @@ cons &=& \lambda x : Int\\
      &&  \lambda l : IntList\\
      &&      fold_{IntList}\ R(x, l)\\
 \end{array}
-\end{math}
+$$
 
-The functions first build the thing in the branch (for cons: (x, l), for nil: ()), and then fold it up into an IntList. Next to try is a function performing a calculation over a list, which will have to decompose the list into each of its elements using unfold:
+The functions first build the thing in the branch (for cons: (x, l), for nil: ()), and then fold it up into an IntList. Now, let's try a function performing a calculation over a list, which will have to decompose the list into each of its elements using unfold:
 
-\begin{math}
+$$
 \begin{array}{lcl}
 length &::& IntList -> Int \\
 length &=& \lambda x : Int \\
@@ -97,7 +101,7 @@ length &=& \lambda x : Int \\
        &&        L () -> 0 \\
        &&        R (\_, l') -> 1 + length\ l' \\
 \end{array}
-\end{math}
+$$
 
 As you can see, we fold for constructors and we unfold for pattern matching. This is very mechanical! They can be made implicit in the language, leaving the compiler to do the work.
 
