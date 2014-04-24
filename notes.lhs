@@ -24,6 +24,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \lecture{COS 510: Programming Languages}{Michael Greenberg}{20}{21 of April, 2014}{Santiago Cuellar, Jonathan Balkind}
 
+\section{Compiling this document}
+
+This document has been typeset directly from a literate haskell file. The $.lhs$ file can be found online %Yes? 
+ and can be compiled to follow along.
+
 \section{Defining a Language with Recursive Types}
 
 So far we have only seen the simply typed lambda calculus $\lambda^{->}$, sometimes with some extra constructors. Such type systems are useful, but not expressive enough to have recursion (and thus are not Turing complete). Today we will define a stronger type system by including recursive types. We begin by defining the types supported in the language.
@@ -35,13 +40,13 @@ We include some basic type $B$ such as unit, int, bool, etc. We also include fun
 Defining a recursive type looks something like this
 $$
 \begin{array}{lcr}
-T &=& \mu \alpha. T' \\
+T &=& \mu \alpha . T' \\
   &=& T' \lbrack T/\alpha \rbrack \\
 \end{array}
 $$
-where the $\alpha$ in $T'$ is replaced with $T$ in the same way that free variables are bound in lambda expressions. Note that $T$ here defines a family of types of different lengths, not just a single type. We will focus on the smallest one.
+where the $\alpha$ in $T'$ is replaced with $T$ in the same way that free variables are bound in lambda expressions. If $ \mu \alpha . T'$ is seen as a function, that equation is exactly what means to be a fixed point, the function returns $T$ when applied to $T$. Note that $T$ here defines a family of types of different lengths, namely all fixed points of the function $ \mu \alpha . T'$. We will focus on the smallest one.
 
-There is no polymorphism here (but we see that in the next lecture!), as there is no quantifier on the type variable $\alpha$. However, we can define infinite types (even though memory is finite) using this method. For example, we might define a list of ints as follows:
+There is no polymorphism here (but there will be in the next lecture!), as there is no quantifier on the type variable $\alpha$. However, we can define infinite types (even though memory is finite) using this method. For example, we might define a list of ints as follows:
 
 $$
 \begin{array}{lcl}
@@ -54,7 +59,7 @@ $$
 
 \subsection{An Inductive Definition of a Recursive Type for Lists}
 
-While the above can work, we would prefer to define things in an inductive way. We introduce the fold and unfold expressions to handle this. We need both typing rules and operational semantics for these.
+While the above can work, we would prefer to define things in an inductive way. We introduce the fold and unfold expressions to handle this. We add those constructors to the toolkit of expressions we have been handeling and we introduce typing rules and operational semantics for these.
 
 $$e ::= ...\ ||\ \fold_{\mu}\ e\ ||\ \unfold_{\mu}\ e$$
 
@@ -120,7 +125,7 @@ A Haskell list may look like:
 But under the hood, it has a different representation which looks more like our definition for the construction of that list:
 < l = cons 1 (cons 2 nil)
 
-Based on what we've seen, we can tell that the unfold of a fold should step to what's inside. This looks like: $unfold_\mu (fold_\mu\ e) --> e$
+Based on what we've seen, we can tell that the unfold of a fold should step to what's inside. In fact, it looks like: $unfold_\mu (fold_\mu\ e) --> e$
 
 Unfortunately, Michael ran out of time here, so we now move on to the Haskell.
 
@@ -129,8 +134,7 @@ To introduce the least fixed point operator in Haskell, we use the following syn
 
 > newtype Mu f = Fold {unFold :: f (Mu f) }
 
-This newtype alias actually gets removed at runtime (because there's only one constructor), leaving no overhead for maintaining the type.
-We are building a new type $\mu$ that takes a type $f$ and applies it to a $\mu$, so $\mu$ is the least fixed point of $f$. The function $unFold$ gets the contents out of that new type. The types are given by:
+This newtype alias actually gets removed at runtime (because there's only one constructor), leaving no overhead for maintaining the type. We are building a new type $\mu$ that takes a type $f$ and applies it to a $\mu$, so $\mu$ is a fixed point of $f$. The function $unFold$ gets the contents out of that new type. The types are given by:
 
 < Fold :: f (Mu f) -> Mu f
 < unFold :: Mu f -> f (Mu f)
@@ -138,34 +142,34 @@ We are building a new type $\mu$ that takes a type $f$ and applies it to a $\mu$
 \subsection{ Defining the Type of a \emph{List of Integers} in Haskell.}
 
 
-We might be tempted to write the following \emph{wrong} definition:
+When giving types to a list of integers, we might be tempted to write the following \emph{wrong} definition:
 
 < data IntList = Mu (Either () (Int, IntList))
 
-We could also try this \emph{wrong} definition:
+We could also try this other \emph{wrong} definition:
 
 < data IL = INil | ICons Int IL
 
-Both definitions are ill formed because they used the term inside the definition. Instead we can use the following definition:
+Both definitions are ill formed because they used the defined term inside the definition. Instead we can use the following definition:
 
 > data IntListSpine a = INil | ICons Int a
-> type IntList = Mu IntListSpine -- Taking the fixed point over these spines
+> type IntList = Mu IntListSpine -- Taking the fixed point over the spine
 
-There are two interpretations of this idea: The natural one is to start with the smallest set (i.e. with $\{ INil \}$) and build it up (using $ICons$ in all existing lists). The other way is to see $\mu$ as the least fixed point of $IntListSpine$. The least fixed point here is the smallest type that is closed under $ICons$. Does that least fixed point exist? Is it unique? The answer is yes and there's an amazing thing called a $\mu$-calculus, which is a calculus of least and greatest fixed-point data structures. There are also languages which use the greatest fixed-point, the largest type closed under $ICons$. In such a case, instead of lists, we would get streams of $int$s. As an exercise, one may show that streams are closed under $ICons$.
+There are two interpretations of this idea: The natural one is to start with the smallest set (i.e. with $\{ INil \}$) and build it up (using $ICons$ in all existing lists). The other way is to see $\mu$ as the least fixed point of $IntListSpine$. The least fixed point here is the smallest type that is closed under $ICons$. Does that least fixed point exist? Is it unique? The answer is yes and there's an amazing thing called a $\mu$-calculus, which is a calculus of least and greatest fixed-point data structures. There are also languages which use the greatest fixed-point, in this case the largest type closed under $ICons$. In such language, instead of lists, we would get streams of $int$s from the definition above. As an exercise, one may show that streams are closed under $ICons$.
 
 %if False
 What's the difference between data, type and newtype? @@Add explanation here!
 %endif
 
 There is an abstraction of types which focuses on the number of type variable arguments to a type, known as a kind. Kinds can themselves be further abstracted to sorts, and it's turtles all the way down (or up) from there.
+\begin{itemize}
+\item The kind of most types is $*$.
 
-The kind of most types is $*$.
+\item The kind of IntListSpine is $*\ =>\ *$.
 
-The kind of IntListSpine is $*\ =>\ *$.
-
-The kind of |Mu| is $(*\ =>\ *)\ =>\ *$.
-
-We've now got the types (and even kinds!) we need - let's define some constructors:
+\item The kind of |Mu| is $(*\ =>\ *)\ =>\ *$.
+\end{itemize}
+We've now got the types (and even kinds!) we need - let's define some constructors for the lists:
 
 > nil :: IntList
 > nil = Fold INil
@@ -173,17 +177,16 @@ We've now got the types (and even kinds!) we need - let's define some constructo
 > cons :: Int -> IntList -> IntList
 > cons x ls = Fold $ ICons x ls
 
+Next we can add some functionality to our lists. To use the integers inside the list, we need to unpack the list. The following handy functions will do the job of unfolding lists properly
+
 > match :: IntList -> (() -> a) -> (Int -> IntList -> a) -> a
 > match ls emptyCase consCase = 
 >   case unFold ls of
 >     INil -> emptyCase ()
 >     ICons hd tl -> consCase hd tl
-    
-> instance Show IntList where    
->   show ls = match ls 
->               (\() -> "nil") 
->               (\x ls' -> "cons " ++ show x ++ " (" ++ show ls' ++ ")")
-    
+
+With $match$ writing functions for lists is easy
+
 > hd :: IntList -> Int
 > hd ls = match ls (\() -> error "don't do that!") (\x _ -> x)
 
@@ -197,6 +200,10 @@ We've now got the types (and even kinds!) we need - let's define some constructo
 > append (Fold INil) ls2 = ls2
 > append (Fold (ICons i1 ls1)) ls2 = append ls1 $ cons i1 ls2
 
+> instance Show IntList where    
+>   show ls = match ls 
+>               (\() -> "nil") 
+>               (\x ls' -> "cons " ++ show x ++ " (" ++ show ls' ++ ")")
 
 \subsection{ Defining the Type of \emph{Generic Lists} in Haskell.}
 
@@ -222,8 +229,6 @@ As you can probably guess, we need a TreeSpine and then an application of Mu to 
 
 The definitions get easier the more you write because it's very mechanical. The spine is the function that defines the structure of the type and the least fixed point is the type with that structure. This is what a compiler does automatically for fixed points, where you only provide the structure.
 
-
-
 \section{Shallow Embedding of a Dynamic Language}
 
 In the homework we talked about embedding dynamic types in static types and we wrote the interpreter in the typical way, with the syntax tree etc. This is called a deep embedding, because we built a whole model of the embedded language in the host programming language. There are also shallow embeddings, where the embedded types are the types from your language. Shallow embeddings are nice but it's much harder to reazon about.
@@ -233,7 +238,7 @@ In the homework we talked about embedding dynamic types in static types and we w
 > data DynSpine a = B Bool | I Int | F (a -> a)
 > type Dyn = Mu DynSpine
 
-What makes this a shallow embedding is Haskell's type arrow above. If we consider $Dyn$ algebraically, we can say that
+What makes this a shallow embedding is Haskell's type arrow above. We are using Haskell's funcitonality and lifting it to our language (e.g. with the constructor $F$). If we consider $Dyn$ algebraically, we can say that
 $$
 Dyn = Bool + Int + (Dyn -> Dyn)
 $$
@@ -279,6 +284,8 @@ But that's not going to be of the right type, so we need to unpack the |DynSpine
 
 \subsection{Conditionals, Application and Operations on the Embedded Language}
 
+Conditionals can be written easilty using Haskell's conditional syntax
+
 > cond :: Dyn -> Dyn -> Dyn -> Dyn
 > cond i t e = if asBool i then t else e
 
@@ -311,7 +318,7 @@ We do the same for function application and lambda
 
 This is the essence of shallow embeddings. We use all of Haskell's built in functionality, we just add some coercions.
 
-\section{Writing Programs}
+\section{Writing Programs in the Dynamic Language}
 
 We can now write some programs in our dynamic language. So far we haven't defined anything recursive, lets beggin with the trivially looping program, known as the $\Omega$ combinator
 
@@ -333,7 +340,9 @@ Using the the Y combinator we can define the program that computes the Fibonacci
 
 \section{Generalized Algebraic Data Type}
 
-The type systems we have been working with, can be though of as algebraic structures. There's a unit ($0$), a plus operator ($+$), a times operator ($*$), an arrow ($->$) and a fixed point operator ($\mu$), which is what makes an algebra of type. GADTs allow us to define  dynamic types such as lists that know their own length in their type.
+The type systems we have been working with, can be though of as algebraic structures. There's a unit ($0$), a plus operator ($+$), a times operator ($*$), an arrow ($->$) and a fixed point operator ($\mu$), which is what makes an algebra of types. Generalized Algebraic Data Type (GADTs) are type-indexed type systems, that means type systems where types depend on other types. GADTs are not as general as dependent types, where types can depend on values, but with an embedded language we can simulate values at the type-level and aproximate dependent types. GADTs allow us to define  dynamic types such as length-indexed lists or bounded natural numbers which we construct bellow.
+
+We shall build lists that know their own length in their type. To do so, we first need a type-level representation of the length, so we start by defining the types for each natural number
 
 %if False
 
@@ -344,50 +353,68 @@ The type systems we have been working with, can be though of as algebraic struct
 > data Z
 > data S x
 
-$Nil$ is a list of length zero for any type a and $Cons$ takes whatever the list holds, a list of length $n$ and gives you a list of length greater than $n$
- 
+Using this type-level definition of the naturals, we can construct length-indexed lists.
+
 > data List n b where 
 >   Nil  :: List Z a 
 >   Cons :: a -> List n a -> List (S n) a
 
+%if False
 > instance Show b => Show (List n b) where
 >     show Nil = "Nil"
 >     show (Cons x xs) = "(Cons " ++ show x ++ " " ++ show xs ++ ")"
+%endif
+
+\noindent $Nil$ is a list of length zero for any type $a$ and $Cons$ takes an element of type $a$, a list of length $n$ and gives you a list of length greater than $n+1$.
+
+Lets write functions head and tail for our lists. Until now, when writing such functions, we had to check for empty lists and throw an exception in such a case. We can avoid using exceptions with length-indexed lists
+
 
 > sHead :: List (S n) b -> b
 > sHead (Cons x xs) = x
 
-< hd :: List (S n) a -> a$
-< hd (Cons x _) = x$
-
 > sTail :: List (S n) b -> List n b
 > sTail (Cons x xs) = xs
 
+Another interesting data type is bounded natural number,  a number $m$ that is less than some other number $n$ determined by it's type
 
--- Bounded natural numbers. I.e. a number m that 
---    is less than some other number n
 > data LT n where
 >    Z :: LT (S n)
->     S :: LT n -> LT (S n)
+>    S :: LT n -> LT (S n)
+
+%if False
+> instance Show (LT n) where
+>   show n = show (toInt n)
+%endif
+
+If $m < n$ then it should be true that $m < n + 1$. The following function implements that relation. 
 
 > coerce :: LT n -> LT (S n)
 > coerce Z = Z
 > coerce (S n) = S (coerce n)
 
+Notice that in the case $Z$, the function returns the same $Z$ \emph{but changes the type}. We can also convert any $LT\ n$ to an int (namely it's value $m$)
+
 > toInt :: LT n -> Int
 > toInt Z = 0
 > toInt (S n) = 1 + toInt n
 
-> instance Show (LT n) where
->   show n = show (toInt n)
-
--- only lookup at a position less than the length of the list
+Let's now define a lookup function for our length-indexed lists using our bounded naturals. We could use the stadard look up, where we have to use the monad maybe for safety
 
 > cLookup :: LT n -> List m a -> Maybe a
 > cLookup Z (Cons x xs) = Just x
 > cLookup (S n) (Cons x xs) = cLookup n xs
 > cLookup _ Nil = Nothing
 
+But since we are using length-indexed lists and bounded naturals, there is a better way to implement safe lookup. We will only lookup at position if it's type indicates that it's less than the length of the list.
+
+> sLookup :: LT n -> List n a -> a
+> sLookup Z     (Cons x xs) = x
+> sLookup (S n) (Cons x xs) = sLookup n xs
+
+
+% I don't know what this following code does, we could remove it.
+%if False 
 > cLookup' :: LT n -> List m a -> Maybe (LT m)
 > cLookup' Z (Cons x xs)     = Just Z
 > cLookup' (S n) (Cons x xs) = do n' <- (cLookup' n xs)
@@ -399,11 +426,6 @@ $Nil$ is a list of length zero for any type a and $Cons$ takes whatever the list
 
 > y :: LT (S (S (S Z)))
 > y = (S (S Z))
-
-> sLookup :: LT n -> List n a -> a
-> sLookup Z     (Cons x xs) = x
-> sLookup (S n) (Cons x xs) = sLookup n xs
-
-
+%endif
 
 \end{document}
