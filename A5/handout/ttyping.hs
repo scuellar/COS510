@@ -25,18 +25,14 @@ typing g (PrimOp p es) =
     mapM (\(t,t') -> if t == t' then Just () else Nothing) $ List.zip ts args
     Just res
 -- typing g e = ...
-typing g (Fun s1 s2 (ARROW t1 t1') t2 e) = 
+typing g (Fun f x (ARROW t1 t1') t2 e) = 
     if t1 /= t2 then Nothing else
-    if typing (Map.insert s2 t2 (Map.insert s1 (ARROW t1 t1') g)) e == Just t1'
+    if typing (Map.insert x t2 (Map.insert f (ARROW t1 t1') g)) e == Just t1'
     then Just (ARROW t1 t1') else Nothing
-typing g (Fun s1 s2 t1 t2 e) = Nothing
 typing g (Apply e1 e2) =
-    case typing g e1 of
-    (Just (ARROW t1 t2)) -> 
-            (case typing g e2 of 
-                (Just t2') -> (if t2 == t2' then Just t2 else Nothing)
-                _ -> Nothing)
-    _ -> Nothing
+    case (typing g e1, typing g e2) of
+      (Just (ARROW t1 t2), Just t2') -> (if t2 == t2' then Just t2 else Nothing)
+      _ -> Nothing
 typing g (Var s) = Map.lookup s g
 typing g (TagInt e) = if (typing g e) == Just INT then Just TAGGED else Nothing
 typing g (TagBool e) = if (typing g e) == Just BOOL then Just TAGGED else Nothing
@@ -44,6 +40,8 @@ typing g (TagFun e) = if (typing g e) == Just (ARROW TAGGED TAGGED) then Just TA
 typing g (AsInt e) = if (typing g e) == Just TAGGED then Just INT else Nothing
 typing g (AsBool e) = if (typing g e) == Just TAGGED then Just BOOL else Nothing
 typing g (AsFun e) = if (typing g e) == Just TAGGED then Just (ARROW TAGGED TAGGED) else Nothing
+typing _ _ = Nothing
+
 
 typeOf :: Exp -> Maybe Typ
 typeOf e = typing Map.empty e
