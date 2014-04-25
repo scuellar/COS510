@@ -133,13 +133,16 @@ translateExp g (Check e (ARROW t1 t2)) =
         Nothing -> Nothing 
 -- Untyped funs
 translateExp g (UTFun s1 s2 e) = 
-    case translateExp (Map.insert s2 TAGGED (Map.insert s1 (ARROW TAGGED TAGGED) g)) e of
-        Just (e2', t2') -> if t2' == TAGGED then Just (s1 s2 (ARROW TAGGED TAGGED) TAGGED e2', ARROW TAGGED TAGGED) else Nothing
+    case translateExp (Map.insert s2 TAGGED (Map.insert s1 TAGGED g)) e of -- How to show that the tagged thing is a function?!
+        Just (e2', t2') -> if t2' == TAGGED then Just (s1 s2 TAGGED TAGGED e2', TAGGED) else Nothing
         Nothing -> Nothing
 -- Apply
 translateExp g (Apply e1 e2) = 
     case (translateExp g e1, translateExp g e2) of
-        (Just e1' (ARROW t1 t1'), Just e2' t2') -> if t1 /= t2' then Nothing else Just (Apply e1' e2', t2') -- Is this the right case? Seems like we should reduce the expression where we can...
+        (Just e1' (ARROW t1 t1'), Just e2' t2') -> if t1 /= t2' then Nothing else Just (Apply e1' e2', t2')
+        (Just e1' TAGGED, Just e2' TAGGED) -> Just (Apply (cast (ARROW TAGGED TAGGED) e1') e2', TAGGED)
+        (Just e1' TAGGED, Just e2' t) -> Just (Apply (cast (ARROW TAGGED TAGGED) e1') (tagify t e2'), TAGGED)
+        (Just e1' (ARROW t1 t1'), Just e2' TAGGED) -> Just (Apply (cast (ARROW TAGGED TAGGED) e1') (tagify t e2'), TAGGED)
         _ -> Nothing
 -- Vars
 translateExp g (Var s) = if (Map.lookup s g == Just TAGGED) then Just (Var s, TAGGED) else Nothing
