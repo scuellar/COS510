@@ -132,7 +132,10 @@ translateExp g (Check e (ARROW t1 t2)) =
         Just (e', t') -> if t' == (ARROW t1 t2) then Just (e', ARROW t1 t2) else Nothing
         Nothing -> Nothing 
 -- Untyped funs
-translateExp g (UTFun String String Exp) = 
+translateExp g (UTFun s1 s2 e) = 
+    case translateExp (Map.insert s2 TAGGED (Map.insert s1 (ARROW TAGGED TAGGED) g)) e of
+        Just (e2', t2') -> if t2' == TAGGED then Just (s1 s2 (ARROW TAGGED TAGGED) TAGGED e2', ARROW TAGGED TAGGED) else Nothing
+        Nothing -> Nothing
 -- Apply
 translateExp g (Apply e1 e2) = 
     case (translateExp g e1, translateExp g e2) of
