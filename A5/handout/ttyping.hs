@@ -25,9 +25,13 @@ typing g (PrimOp p es) =
     mapM (\(t,t') -> if t == t' then Just () else Nothing) $ List.zip ts args
     Just res
 -- typing g e = ...
-typing g (Fun s1 s2 t1 t2 e) = typing (Map.insert s2 t2 (Map.insert s1 t1 g)) e
+typing g (Fun s1 s2 (ARROW t1 t1') t2 e) = 
+    if t1 /= t2 then Nothing else
+    if typing (Map.insert s2 t2 (Map.insert s1 (ARROW t1 t1') g)) e == Just t1'
+    then Just (ARROW t1 t1') else Nothing
+typing g (Fun s1 s2 t1 t2 e) = Nothing
 typing g (Apply e1 e2) =
-  case typing g e1 of
+    case typing g e1 of
     (Just (ARROW t1 t2)) -> 
             (case typing g e2 of 
                 (Just t2') -> (if t2 == t2' then Just t2 else Nothing)

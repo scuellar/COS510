@@ -50,53 +50,36 @@ translateType (D.ARROW t1 t2) = M.ARROW t1' t2'
 translateExp :: Map.Map String M.Typ -> D.Exp -> Maybe (M.Exp, M.Typ)
 -- translateExp g e = ...
 -- Ints
-translateExp m (Int i) = Just (Int i, INT)
-translateExp m _ = Nothing
+translateExp g (Int i) = Just (Int i, INT)
 -- Bools
-translateExp m (Bool b) = Just (Bool b, BOOL)
-translateExp m _ = Nothing
+translateExp g (Bool b) = Just (Bool b, BOOL)
 -- Ifs
-translateExp m (If e1 e2 e3) = case (translateExp m e1, translateExp m e2, translateExp m e3) of
-                                    (Just (e1', BOOL), Just (e2', t2), Just (e3', t2)) -> Just (If e1' e2' e3', t2)
-                                    _ -> Nothing
+translateExp g (If e1 e2 e3) = case translateExp g e1 of
+                                Just 
 -- PrimOps
-translateExp m (PrimOp Equal  [e1, e2]) = case (translateExp m e1, translateExp m e2) of
-                                                (Just (e1', INT), Just (e2', INT)) -> Just (PrimOp Equal [e1', e2'], BOOL)
-                                                _ -> Nothing
-translateExp m (PrimOp Plus   [e1, e2]) = case (translateExp m e1, translateExp m e2) of
-                                                (Just (e1', INT), Just (e2', INT)) -> Just (PrimOp Plus [e1', e2'], INT)
-                                                _ -> Nothing 
-translateExp m (PrimOp Minus  [e1, e2]) = case (translateExp m e1, translateExp m e2) of
-                                                (Just (e1', INT), Just (e2', INT)) -> Just (PrimOp Minus [e1', e2'], INT)
-                                                _ -> Nothing 
-translateExp m (PrimOp Times  [e1, e2]) = case (translateExp m e1, translateExp m e2) of
-                                                (Just (e1', INT), Just (e2', INT)) -> Just (PrimOp Times [e1', e2'], INT)
-                                                _ -> Nothing 
-translateExp m (PrimOp Negate [e1]) = case (translateExp m e1) of
-                                            Just (e1', INT) -> Just (PrimOp Negate [e1'], INT)
-                                                _ -> Nothing 
-translateExp m (PrimOp _ _) = Nothing
+translateExp g (PrimOp Equal  [e1, e2]) = 
+translateExp g (PrimOp Plus   [e1, e2]) =
+translateExp g (PrimOp Minus  [e1, e2]) = 
+translateExp g (PrimOp Times  [e1, e2]) = 
+translateExp g (PrimOp Negate [e1]) = 
+translateExp g (PrimOp _ _) = 
 -- Funs
-translateExp m (Fun s1 s2 t1 t2 e) = let type1 = translateType t1
-    in let type2 = translateType t2
-    in case (translateExp (Map.insert s2 type2 (Map.insert s1 type1 m)) e) of
-                                            Just (e', type2) -> Just ((Fun s1 s2 type1 type2 e'), ARROW type1 type2)
+translateExp g (Fun s1 s2 t1 t2 e) = 
 -- Checks
-translateExp m (Check (Int i) INT) = Just (Int i, INT)
-translateExp m (Check _ INT) = Nothing
-translateExp m (Check (Bool b) BOOL) = Just (Bool b, BOOL)
-translateExp m (Check _ BOOL) = Nothing
-translateExp m (Check e (ARROW t1 t2)) = case (translateExp m e) of 
-                                            (Just ((Fun s1 s2 t1 t2 e'), ARROW t1 t2)) -> Just ((Fun s1 s2 t1 t2 e'), ARROW t1 t2)
-                                            _ -> Nothing
+translateExp g (Check e INT) = case translateExp g e of
+                                Just (e', t') -> if t == INT then Just (e', INT)
+                                Nothing -> Nothing
+let trans = translateExp g e in if trans == Just INT
+translateExp g (Check _ INT) = 
+translateExp g (Check (Bool b) BOOL) = 
+translateExp g (Check _ BOOL) = 
+translateExp g (Check e (ARROW t1 t2)) = 
 -- Untyped funs
-translateExp m (UTFun String String Exp)
+translateExp g (UTFun String String Exp) = 
 -- Apply
-translateExp m (Apply e1 e2) = case (translateExp m e1, translateExp m e2) of
-                                    (Just (e1', t1), Just (e2' t2)) -> Just ((Apply e1' e2'), t2)
-                                    _ -> Nothing
+translateExp g (Apply e1 e2) = 
 -- Vars
-translateExp m (Var s) = Just (Var s, 
+translateExp g (Var s) = if (Map.lookup s g == Just TAGGED) then Just (Var s, TAGGED) else Nothing
       
 -- Nice use of point-free style here
 translate :: D.Exp -> Maybe (M.Exp, M.Typ)

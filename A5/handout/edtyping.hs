@@ -29,9 +29,7 @@ check_wf g (PrimOp Times [e1, e2]) = case (check_wf g e1, check_wf g e2) of
 check_wf g (PrimOp Negate [e1]) = check_wf g e1
 check_wf g (PrimOp _ _) = Nothing
 check_wf g (Fun s1 s2 t1 t2 e) = check_wf g (UTFun s1 s2 e)
-check_wf g (Check e t) = case check_wf g e of 
-                                (Just ()) -> Just ()
-                                _ -> Nothing
+check_wf g (Check e t) = check_wf g e
 check_wf g (UTFun f x e) = check_wf (Map.insert x () (Map.insert f () g)) e
 check_wf g (Apply e1 e2) = case (check_wf g e1, check_wf g e2) of
                                     (Just (), Just ()) -> Just ()
