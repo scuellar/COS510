@@ -15,12 +15,11 @@ tagify M.INT (M.Int i) = M.TagInt (M.Int i) -- Not a speciall case, could delete
 tagify M.BOOL (M.Bool i) = M.TagBool (M.Bool i)  -- Not a speciall case, could delete
 tagify M.INT e = M.TagInt e
 tagify M.BOOL e = M.TagBool e
-tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e
-tagify (M.ARROW t1 t2) (M.Apply e1 e2) 
+tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e 
 tagify (M.ARROW t1 t2) e =
-  M.TagFun (M.Fun "_tag_fun" "_tag_var" M.TAGGED M.TAGGED (M.Apply e (cast t1 (M.Var (s1 ++ "_tag")))))
+  M.TagFun (M.Fun "_tag_fun" "_tag_var" M.TAGGED M.TAGGED (M.Apply e (cast t1 (M.Var "_tag_var"))))
 -- Fail otherwise with an error:
-tagify t e = error $ "Called tagify with something that isn't taggable! Cannot unify " ++ t ++ " with expression: " ++ e
+tagify t e = error $ "Called tagify with something that isn't taggable! Cannot unify " ++ (show t) ++ " with expression: " ++ (show e)
 
 -- Takes type, expression, casts it to that type
 -- Int and Bool, resulting thing wouldn't type check - maybe we want to reject, maybe never call that way
@@ -32,8 +31,8 @@ cast M.BOOL (M.TagBool e) = e
 cast M.INT e = M.AsInt e
 cast M.BOOL e = M.AsBool e
 cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e
-cast (M.ARROW t1 t2) e = M.AsFun (M.Fun "_cast_fun" "_cast_var" M.TAGGED M.TAGGED (M.Apply e (tagify t1 (M.Var "x")))) --get free vars?
-cast t e = error $ "Called cast with something that isn't castable! Cannot unify " ++ t ++ " with expresison " ++ e
+cast (M.ARROW t1 t2) e = M.AsFun (M.Fun "_cast_fun" "_cast_var" M.TAGGED M.TAGGED (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
+cast t e = error $ "Called cast with something that isn't castable! Cannot unify " ++ (show t) ++ " with expresison " ++ (show e) 
 
 translateOp :: D.PrimOp -> M.PrimOp
 translateOp D.Equal = M.Equal
