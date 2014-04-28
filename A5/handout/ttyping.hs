@@ -38,9 +38,9 @@ typing g (PrimOp p es) =
     Just res
 -- typing g e = ...
 typing g (Fun f x tx tf e) = 
-    (if typing (Map.insert x tx (Map.insert f tf g)) e == Just tf
-            then Just (ARROW tx tf)
-            else Nothing)
+    if typing (Map.insert x tx (Map.insert f (ARROW tx tf) g)) e == Just tf
+    then Just (ARROW tx tf)
+    else Nothing
 typing g (Fun f x tx TAGGED e) = 
     if typing (Map.insert x tx (Map.insert f TAGGED g)) e == Just TAGGED
     then Just (ARROW tx TAGGED)
