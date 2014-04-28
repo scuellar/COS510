@@ -4,6 +4,18 @@ import TMinML
 import Data.Map as Map
 import Data.List as List
 
+--I instantiate a global state, to retrive fresh variables 
+import Data.IORef
+
+type FreshVar = String -> IO String
+
+makeCounter :: IO FreshVar
+makeCounter = do
+    r <- newIORef "."
+    return (\i -> do modifyIORef r (++ "+")
+                     readIORef r)
+
+
 -- Note that these are TML types, not DML types
 -- If it returns None, then it doesn't type check
 -- TML does support recursive functions
