@@ -61,3 +61,4 @@ typing _ _ = Nothing
 
 typeOf :: Exp -> Maybe Typ
 typeOf e = typing Map.empty e
+
