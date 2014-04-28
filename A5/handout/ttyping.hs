@@ -40,10 +40,10 @@ typing g (Apply e1 e2) =
 typing g (Var s) = Map.lookup s g
 typing g (TagInt e) = if (typing g e) == Just INT then Just TAGGED else Nothing
 typing g (TagBool e) = if (typing g e) == Just BOOL then Just TAGGED else Nothing
-typing g (TagFun e) = if (typing g e) == Just (ARROW TAGGED TAGGED) then Just TAGGED else Nothing
+typing g (TagFun e) = if (typing g e) == Just TAGGED then Just TAGGED else Nothing
 typing g (AsInt e) = if (typing g e) == Just TAGGED then Just INT else Nothing
 typing g (AsBool e) = if (typing g e) == Just TAGGED then Just BOOL else Nothing
-typing g (AsFun e) = if (typing g e) == Just TAGGED then Just (ARROW TAGGED TAGGED) else Nothing
+typing g (AsFun e) = if (typing g e) == Just TAGGED then Just TAGGED else Nothing
 typing _ _ = Nothing
 
 

@@ -15,6 +15,7 @@ tagify M.BOOL (M.Bool i) = (M.Bool i)
 tagify M.INT e = M.TagInt e
 tagify M.BOOL e = M.TagBool e
 tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e
+--tagify M.TAGGED (M.Fun s1 s2 t1 t2 e) = 
 tagify _ _ = error "Called tagify with something that isn't taggable!"
 
 -- Takes type, expression, casts it to that type
@@ -28,6 +29,7 @@ cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e
 cast M.INT e = M.AsInt e
 cast M.BOOL e = M.AsBool e
 cast (M.ARROW M.TAGGED M.TAGGED) e = M.AsFun e
+cast (M.ARROW t1 t2) (M.Fun s1 s2 M.TAGGED M.TAGGED e) = (M.Fun s1 s2 (M.ARROW t1 t2) t1 (cast t2 e))
 cast _ _ = error "Called cast with something that isn't castable!"
 
 translateOp :: D.PrimOp -> M.PrimOp
@@ -109,9 +111,9 @@ translateExp g (D.PrimOp D.Negate [e1]) =
         Just (e1', t1')     -> Just (M.PrimOp M.Negate [cast M.INT (tagify t1' e1')], M.INT)
         _ -> Nothing
 -- Funs
-translateExp g (D.Fun s1 s2 (D.ARROW t1 t1') t2 e) = if t1 /= t2 then Nothing else
-    case translateExp (Map.insert s2 (translateType t2) (Map.insert s1 (translateType $ D.ARROW t1 t1') g)) e of
-        Just (e2', t2') -> if t2' == (translateType t1') then Just (M.Fun s1 s2 (translateType $ D.ARROW t1 t1') t2' e2', (translateType $ D.ARROW t1 t1')) else Nothing
+translateExp g (D.Fun s1 s2 t1 t2 e) = -- I just realised - I think that the function type is different to what I originally thought
+    case translateExp (Map.insert s2 (translateType t2) (Map.insert s1 (M.ARROW (translateType t2) (translateType t1)) g)) e of
+        Just (e2', t2') -> if t2' == (translateType t1) then Just (M.Fun s1 s2 (translateType t1) t2' e2', M.ARROW (translateType t2) t2') else Nothing
 -- Checks
 translateExp g (D.Check e t) = 
     case translateExp g e of
@@ -124,7 +126,7 @@ translateExp g (D.Check e t) =
         Nothing -> Nothing
 -- Untyped funs
 translateExp g (D.UTFun s1 s2 e) = 
-    case translateExp (Map.insert s2 M.TAGGED (Map.insert s1 M.TAGGED g)) e of -- How to show that the tagged thing is a function?!
+    case translateExp (Map.insert s2 M.TAGGED (Map.insert s1 (M.ARROW M.TAGGED M.TAGGED) g)) e of -- How to show that the tagged thing is a function?!
         Just (e2', M.TAGGED) -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED e2', M.TAGGED)
         Just (e2', t2') -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED (tagify t2' e2'), M.TAGGED)
         _ -> Nothing
@@ -141,7 +143,11 @@ translateExp g (D.Apply e1 e2) =
         (Just (e1', t1'), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) (tagify t1' e1')) (tagify t2' e2'), M.TAGGED)
         _ -> Nothing
 -- Vars
-translateExp g (D.Var s) = if (Map.lookup s g == Just M.TAGGED) then Just (M.Var s, M.TAGGED) else Nothing
+translateExp g (D.Var s) =
+    case Map.lookup s g of
+        (Just t) -> Just (M.Var s, t)
+        _ -> Nothing
+--if (Map.lookup s g == Just M.TAGGED) then Just (M.Var s, M.TAGGED) else Nothing
 translateExp _ _ = Nothing
       
 -- Nice use of point-free style here
