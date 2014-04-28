@@ -10,12 +10,9 @@ import Control.Monad (guard)
 
 -- Take type, expression, returns a tagged expression
 tagify :: M.Typ -> M.Exp -> M.Exp
--- tagify t e =  ...
-tagify INT e = TagInt e
-tagify BOOL e = TagBool e
---tagify TAGGED e =
-tagify (ARROW TAGGED TAGGED) e = TagFun e
---tagify (ARROW t1 t2) e = 
+tagify M.INT e = M.TagInt e
+tagify M.BOOL e = M.TagBool e
+tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e
 tagify _ _ = error "Called tagify with something that isn't taggable!"
 
 -- Takes type, expression, casts it to that type
@@ -23,11 +20,12 @@ tagify _ _ = error "Called tagify with something that isn't taggable!"
 -- cast Int tagged_bool(True) --> as_int (tagged_bool True)
 -- This makes sense - it type checks, but it will fail at runtime
 cast :: M.Typ -> M.Exp -> M.Exp
--- cast t e = ...
-cast INT (TagInt e) = e
-cast BOOL (TagBool e) = e
---cast TAGGED e = Tag
-cast (ARROW TAGGED TAGGED) (TagFun e) = e
+cast M.INT (M.TagInt e) = e
+cast M.BOOL (M.TagBool e) = e
+cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e
+cast M.INT e = M.AsInt e
+cast M.BOOL e = M.AsBool e
+cast (M.ARROW M.TAGGED M.TAGGED) e = M.AsFun e
 cast _ _ = error "Called cast with something that isn't castable!"
 
 translateOp :: D.PrimOp -> M.PrimOp
@@ -50,102 +48,97 @@ translateType (D.ARROW t1 t2) = M.ARROW t1' t2'
 translateExp :: Map.Map String M.Typ -> D.Exp -> Maybe (M.Exp, M.Typ)
 -- translateExp g e = ...
 -- Ints
-translateExp g (Int i) = Just (Int i, INT)
+translateExp g (D.Int i) = Just (M.Int i, M.INT)
 -- Bools
-translateExp g (Bool b) = Just (Bool b, BOOL)
+translateExp g (D.Bool b) = Just (M.Bool b, M.BOOL)
 -- Ifs
-translateExp g (If e1 e2 e3) = 
-    case translateExp g e1 of
-        Nothing -> Nothing
-        Just (e1', t1') ->
-            if t1' == BOOL then 
-                (case (translateExp g e2, translateExp g e3) of
-                ((Just e2', t2'), (Just e3', t3')) -> if t2' /= t3' then Nothing else Just (If e1' e2' e3', t3')
-                _ -> Nothing) else
-            if t1' == TAGGED then
-               (case (translateExp g e2, translateExp g e3) of
-                ((Just e2', t2'), (Just e3', t3')) -> if t2' /= t3' then Nothing else Just (If (cast BOOL e1') e2' e3', t3')
-                _ -> Nothing) 
+translateExp g (D.If e1 e2 e3) = 
+    case (translateExp g e1, translateExp g e2, translateExp g e3) of
+        (Just (e1', M.BOOL), (Just (e2', t2')), (Just (e3', t3'))) -> 
+            if t2' == t3' 
+            then Just (M.If e1' e2' e3', t3')
+            else Just (M.If e1' (tagify t2' e2') (tagify t3' e3'))
+        (Just (e1', M.TAGGED), (Just (e2', t2')), (Just (e3', t3'))) -> 
+            if t2' == t3'
+            then Just (M.If (cast M.BOOL e1') e2' e3', t3')
+            else Just (M.If (cast M.BOOL e1') (tagify t2' e2') (tagify t3' e3'))
+        (Just (e1', t1'), (Just (e2', t2')), (Just (e3', t3'))) -> 
+            if t2' == t3'
+            then Just (M.If (cast M.BOOL (tagify t1' e1')) e2' e3', t3')
             else Nothing
-
+        _ -> Nothing
 -- PrimOps
-translateExp g (PrimOp Equal  [e1, e2]) = 
+translateExp g (D.PrimOp D.Equal  [e1, e2]) = 
     case (translateExp g e1, translateExp g e2) of
-        (Just (e1', t1'), Just (e2', t2')) -> 
-            if t1' == INT && t2' == INT then Just (PrimOp Equal [e1', e2'], BOOL) else
-            if t1' == TAGGED && t2' == TAGGED then Just (PrimOp Equal [cast INT e1', cast INT e2'], BOOL)
-            if t1' == INT && t2' == TAGGED then Just (PrimOp Equal [e1', cast INT e2'], BOOL)
-            if t1' == TAGGED && t2' == INT then Just (PrimOp Equal [cast INT e1', e2'], BOOL)
-            else Nothing
+        (Just (e1', M.INT), Just (e2', M.INT))      -> Just (M.PrimOp M.Equal [e1', e2'], M.BOOL)
+        (Just (e1', M.TAGGED), Just (e2', M.TAGGED))-> Just (M.PrimOp M.Equal [cast M.INT e1', cast M.INT e2'], M.BOOL)
+        (Just (e1', M.INT), Just (e2', M.TAGGED))   -> Just (M.PrimOp M.Equal [e1', cast M.INT e2'], M.BOOL)
+        (Just (e1', M.TAGGED), Just (e2', M.INT))   -> Just (M.PrimOp M.Equal [cast M.INT e1', e2'], M.BOOL)
+        (Just (e1', t1'), Just (e2', t2'))          -> Just (M.PrimOp M.Equal [cast M.INT (tagify t1' e1'), cast M.INT (tagify t2' e2')], M.INT)
         _ -> Nothing
-translateExp g (PrimOp Plus   [e1, e2]) =
+translateExp g (D.PrimOp D.Plus   [e1, e2]) =
     case (translateExp g e1, translateExp g e2) of
-        (Just (e1', t1'), Just (e2', t2')) -> 
-            if t1' == INT && t2' == INT then Just (PrimOp Plus [e1', e2'], INT) else
-            if t1' == TAGGED && t2' == TAGGED then Just (PrimOp Plus [cast INT e1', cast INT e2'], INT)
-            if t1' == INT && t2' == TAGGED then Just (PrimOp Plus [e1', cast INT e2'], INT)
-            if t1' == TAGGED && t2' == INT then Just (PrimOp Plus [cast INT e1', e2'], INT)
-            else Nothing
+        (Just (e1', M.INT), Just (e2', M.INT))      -> Just (M.PrimOp M.Plus [e1', e2'], M.INT)
+        (Just (e1', M.TAGGED), Just (e2', M.TAGGED))-> Just (M.PrimOp M.Plus [cast M.INT e1', cast M.INT e2'], M.INT)
+        (Just (e1', M.INT), Just (e2', M.TAGGED))   -> Just (M.PrimOp M.Plus [e1', cast M.INT e2'], M.INT)
+        (Just (e1', M.TAGGED), Just (e2', M.INT))   -> Just (M.PrimOp M.Plus [cast M.INT e1', e2'], M.INT)
+        (Just (e1', t1'), Just (e2', t2'))          -> Just (M.PrimOp M.Plus [cast M.INT (tagify t1' e1'), cast M.INT (tagify t2' e2')], M.INT)
         _ -> Nothing
-translateExp g (PrimOp Minus  [e1, e2]) = 
+translateExp g (D.PrimOp D.Minus  [e1, e2]) = 
     case (translateExp g e1, translateExp g e2) of
-        (Just (e1', t1'), Just (e2', t2')) -> 
-            if t1' == INT && t2' == INT then Just (PrimOp Minus [e1', e2'], INT) else
-            if t1' == TAGGED && t2' == TAGGED then Just (PrimOp Minus [cast INT e1', cast INT e2'], INT)
-            if t1' == INT && t2' == TAGGED then Just (PrimOp Minus [e1', cast INT e2'], INT)
-            if t1' == TAGGED && t2' == INT then Just (PrimOp Minus [cast INT e1', e2'], INT)
-            else Nothing
+        (Just (e1', M.INT), Just (e2', M.INT))      -> Just (M.PrimOp M.Minus [e1', e2'], M.INT)
+        (Just (e1', M.TAGGED), Just (e2', M.TAGGED))-> Just (M.PrimOp M.Minus [cast M.INT e1', cast M.INT e2'], M.INT)
+        (Just (e1', M.INT), Just (e2', M.TAGGED))   -> Just (M.PrimOp M.Minus [e1', cast M.INT e2'], M.INT)
+        (Just (e1', M.TAGGED), Just (e2', M.INT))   -> Just (M.PrimOp M.Minus [cast M.INT e1', e2'], M.INT)
+        (Just (e1', t1'), Just (e2', t2'))          -> Just (M.PrimOp M.Minus [cast M.INT (tagify t1' e1'), cast M.INT (tagify t2' e2')], M.INT)
         _ -> Nothing
-translateExp g (PrimOp Times  [e1, e2]) = 
+translateExp g (D.PrimOp D.Times  [e1, e2]) = 
     case (translateExp g e1, translateExp g e2) of
-        (Just (e1', t1'), Just (e2', t2')) -> 
-            if t1' == INT && t2' == INT then Just (PrimOp Times [e1', e2'], INT) else
-            if t1' == TAGGED && t2' == TAGGED then Just (PrimOp Times [cast INT e1', cast INT e2'], INT)
-            if t1' == INT && t2' == TAGGED then Just (PrimOp Times [e1', cast INT e2'], INT)
-            if t1' == TAGGED && t2' == INT then Just (PrimOp Times [cast INT e1', e2'], INT)
-            else Nothing
+        (Just (e1', M.INT), Just (e2', M.INT))      -> Just (M.PrimOp M.Times [e1', e2'], M.INT)
+        (Just (e1', M.TAGGED), Just (e2', M.TAGGED))-> Just (M.PrimOp M.Times [cast M.INT e1', cast M.INT e2'], M.INT)
+        (Just (e1', M.INT), Just (e2', M.TAGGED))   -> Just (M.PrimOp M.Times [e1', cast M.INT e2'], M.INT)
+        (Just (e1', M.TAGGED), Just (e2', M.INT))   -> Just (M.PrimOp M.Times [cast M.INT e1', e2'], M.INT)
+        (Just (e1', t1'), Just (e2', t2'))          -> Just (M.PrimOp M.Times [cast M.INT (tagify t1' e1'), cast M.INT (tagify t2' e2')], M.INT)
         _ -> Nothing
-translateExp g (PrimOp Negate [e1]) = 
+translateExp g (D.PrimOp D.Negate [e1]) = 
     case translateExp g e1 of
-        Just (e1', t1') -> 
-            if t1' == INT then Just (PrimOp Negate [e1'], INT) else
-            if t1' == TAGGED then Just (PrimOp Negate [cast INT e1'], INT)
-            else Nothing
+        Just (e1', M.INT)   -> Just (M.PrimOp M.Negate [e1'], M.INT)
+        Just (e1', M.TAGGED)-> Just (M.PrimOp M.Negate [cast M.INT e1'], M.INT)
+        Just (e1', t1')     -> Just (M.PrimOp M.Negate [cast M.INT (tagify t1' e1')], M.INT)
         _ -> Nothing
-translateExp g (PrimOp _ _) = Nothing
 -- Funs
-translateExp g (Fun s1 s2 (ARROW t1 t1') t2 e) = if t1 /= t2 then Nothing else
-    case translateExp (Map.insert s2 t2 (Map.insert s1 (ARROW t1 t1') g)) e of
-        Just (e2', t2') -> if t2' /= t1' then Nothing else Just (Fun s1 s2 (ARROW t1 t1') t2 e2', ARROW t1 t1')
-translateExp g (Fun _ _ _ _ _) = Nothing
+translateExp g (D.Fun s1 s2 (D.ARROW t1 t1') t2 e) = if t1 /= t2 then Nothing else
+    case translateExp (Map.insert s2 (translateType t2) (Map.insert s1 (translateType $ D.ARROW t1 t1') g)) e of
+        Just (e2', t2') -> if t2' == (translateType t1') then Just (M.Fun s1 s2 (translateType $ D.ARROW t1 t1') t2' e2', (translateType $ D.ARROW t1 t1')) else Nothing
 -- Checks
-translateExp g (Check e INT) = 
+translateExp g (D.Check e t) = 
     case translateExp g e of
-        Just (e', t') -> if t' == INT then Just (e', INT) else Nothing
+        Just (e', t') -> 
+            if t' == (translateType t) 
+            then Just (e', t') 
+            else   (if t' == M.TAGGED
+                    then Just (cast (translateType t) e', (translateType t))
+                    else Nothing)
         Nothing -> Nothing
-translateExp g (Check e BOOL) = 
-    case translateExp g e of
-        Just (e', t') -> if t' == BOOL then Just (e', BOOL) else Nothing
-        Nothing -> Nothing 
-translateExp g (Check e (ARROW t1 t2)) = 
-    case translateExp g e of
-        Just (e', t') -> if t' == (ARROW t1 t2) then Just (e', ARROW t1 t2) else Nothing
-        Nothing -> Nothing 
 -- Untyped funs
-translateExp g (UTFun s1 s2 e) = 
-    case translateExp (Map.insert s2 TAGGED (Map.insert s1 TAGGED g)) e of -- How to show that the tagged thing is a function?!
-        Just (e2', t2') -> if t2' == TAGGED then Just (s1 s2 TAGGED TAGGED e2', TAGGED) else Nothing
+translateExp g (D.UTFun s1 s2 e) = 
+    case translateExp (Map.insert s2 M.TAGGED (Map.insert s1 M.TAGGED g)) e of -- How to show that the tagged thing is a function?!
+        Just (e2', M.TAGGED) -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED e2', M.TAGGED)
         Nothing -> Nothing
 -- Apply
-translateExp g (Apply e1 e2) = 
+translateExp g (D.Apply e1 e2) = 
     case (translateExp g e1, translateExp g e2) of
-        (Just e1' (ARROW t1 t1'), Just e2' t2') -> if t1 /= t2' then Nothing else Just (Apply e1' e2', t2')
-        (Just e1' TAGGED, Just e2' TAGGED) -> Just (Apply (cast (ARROW TAGGED TAGGED) e1') e2', TAGGED)
-        (Just e1' TAGGED, Just e2' t) -> Just (Apply (cast (ARROW TAGGED TAGGED) e1') (tagify t e2'), TAGGED)
-        (Just e1' (ARROW t1 t1'), Just e2' TAGGED) -> Just (Apply (cast (ARROW TAGGED TAGGED) e1') (tagify t e2'), TAGGED)
+        (Just (e1', (M.ARROW t1 t1')), (Just (e2', M.TAGGED))) -> Just (M.Apply e1' (tagify t1 e2'), t1')
+        (Just (e1', (M.ARROW t1 t1')), Just (e2', t2')) -> 
+            if t1 == t2'
+            then Just (M.Apply e1' e2', t1')
+            else Just (M.Apply e1' (cast t1 (tagify t2' e2')), t1')
+        (Just (e1', M.TAGGED), Just (e2', M.TAGGED)) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) e1') e2', M.TAGGED)
+        (Just (e1', M.TAGGED), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) e1') (tagify t2' e2'), M.TAGGED)
+        (Just (e1', t1'), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) (tagify t1' e1')) (tagify t2' e2'), M.TAGGED)
         _ -> Nothing
 -- Vars
-translateExp g (Var s) = if (Map.lookup s g == Just TAGGED) then Just (Var s, TAGGED) else Nothing
+translateExp g (D.Var s) = if (Map.lookup s g == Just M.TAGGED) then Just (M.Var s, M.TAGGED) else Nothing
       
 -- Nice use of point-free style here
 translate :: D.Exp -> Maybe (M.Exp, M.Typ)
