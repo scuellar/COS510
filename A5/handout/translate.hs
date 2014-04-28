@@ -124,7 +124,8 @@ translateExp g (D.Check e t) =
 translateExp g (D.UTFun s1 s2 e) = 
     case translateExp (Map.insert s2 M.TAGGED (Map.insert s1 M.TAGGED g)) e of -- How to show that the tagged thing is a function?!
         Just (e2', M.TAGGED) -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED e2', M.TAGGED)
-        Nothing -> Nothing
+        Just (e2', t2') -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED (tagify t2' e2'), M.TAGGED)
+        _ -> Nothing
 -- Apply
 translateExp g (D.Apply e1 e2) = 
     case (translateExp g e1, translateExp g e2) of
@@ -139,6 +140,7 @@ translateExp g (D.Apply e1 e2) =
         _ -> Nothing
 -- Vars
 translateExp g (D.Var s) = if (Map.lookup s g == Just M.TAGGED) then Just (M.Var s, M.TAGGED) else Nothing
+translateExp _ _ = Nothing
       
 -- Nice use of point-free style here
 translate :: D.Exp -> Maybe (M.Exp, M.Typ)
