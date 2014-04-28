@@ -10,6 +10,8 @@ import Control.Monad (guard)
 
 -- Take type, expression, returns a tagged expression
 tagify :: M.Typ -> M.Exp -> M.Exp
+tagify M.INT (M.Int i) = (M.Int i)
+tagify M.BOOL (M.Bool i) = (M.Bool i)
 tagify M.INT e = M.TagInt e
 tagify M.BOOL e = M.TagBool e
 tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e

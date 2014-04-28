@@ -29,9 +29,13 @@ typing g (Fun f x (ARROW t1 t1') t2 e) =
     if t1 /= t2 then Nothing else
     if typing (Map.insert x t2 (Map.insert f (ARROW t1 t1') g)) e == Just t1'
     then Just (ARROW t1 t1') else Nothing
+typing g (Fun f x TAGGED t2 e) = 
+    if typing (Map.insert x t2 (Map.insert f TAGGED g)) e == Just TAGGED
+    then Just TAGGED else Nothing
 typing g (Apply e1 e2) =
     case (typing g e1, typing g e2) of
-      (Just (ARROW t1 t2), Just t2') -> (if t1 == t2' then Just t2 else Nothing)
+      (Just (ARROW t1 t2), Just t2') -> if t1 == t2' then Just t2 else Nothing
+      (Just TAGGED, Just t2') -> Just TAGGED
       _ -> Nothing
 typing g (Var s) = Map.lookup s g
 typing g (TagInt e) = if (typing g e) == Just INT then Just TAGGED else Nothing
