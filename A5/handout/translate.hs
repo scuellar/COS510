@@ -111,9 +111,12 @@ translateExp g (D.PrimOp D.Negate [e1]) =
         Just (e1', t1')     -> Just (M.PrimOp M.Negate [cast M.INT (tagify t1' e1')], M.INT)
         _ -> Nothing
 -- Funs
-translateExp g (D.Fun s1 s2 t1 t2 e) = -- I just realised - I think that the function type is different to what I originally thought
-    case translateExp (Map.insert s2 (translateType t2) (Map.insert s1 (M.ARROW (translateType t2) (translateType t1)) g)) e of
-        Just (e2', t2') -> if t2' == (translateType t1) then Just (M.Fun s1 s2 (translateType t1) t2' e2', M.ARROW (translateType t2) t2') else Nothing
+translateExp g (D.Fun f x tx tf e) = -- I just realised - I think that the function type is different to what I originally thought
+    case translateExp (Map.insert x (translateType tx) (Map.insert f (M.ARROW (translateType tx) (translateType tf)) g)) e of
+        Just (e2', t2') -> 
+            if t2' == (translateType tf)
+            then Just (M.Fun f x (translateType tx) t2' e2', M.ARROW (translateType tx) t2')
+            else Nothing
 -- Checks
 translateExp g (D.Check e t) = 
     case translateExp g e of
@@ -126,9 +129,9 @@ translateExp g (D.Check e t) =
         Nothing -> Nothing
 -- Untyped funs
 translateExp g (D.UTFun s1 s2 e) = 
-    case translateExp (Map.insert s2 M.TAGGED (Map.insert s1 (M.ARROW M.TAGGED M.TAGGED) g)) e of -- How to show that the tagged thing is a function?!
+    case translateExp (Map.insert s2 M.TAGGED (Map.insert s1 (M.ARROW M.TAGGED M.TAGGED) g)) e of
         Just (e2', M.TAGGED) -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED e2', M.TAGGED)
-        Just (e2', t2') -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED (tagify t2' e2'), M.TAGGED)
+        Just (e2', t2') -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED (tagify t2' e2'), M.TAGGED) -- should the fn have type ARROW TAGGED t2'?
         _ -> Nothing
 -- Apply
 translateExp g (D.Apply e1 e2) = 
