@@ -57,7 +57,7 @@ translateExp g (D.If e1 e2 e3) =
         (Just (e1', M.BOOL), (Just (e2', t2')), (Just (e3', t3'))) -> 
             if t2' == t3' 
             then Just (M.If e1' e2' e3', t3')
-            else Just (M.If e1' (tagify t2' e2') (tagify t3' e3'))
+            else Just (M.If e1' (tagify t2' e2') (tagify t3' e3'), M.TAGGED)
         (Just (e1', M.TAGGED), (Just (e2', t2')), (Just (e3', t3'))) -> 
             if t2' == t3'
             then Just (M.If (cast M.BOOL e1') e2' e3', t3')
@@ -65,7 +65,7 @@ translateExp g (D.If e1 e2 e3) =
         (Just (e1', t1'), (Just (e2', t2')), (Just (e3', t3'))) -> 
             if t2' == t3'
             then Just (M.If (cast M.BOOL (tagify t1' e1')) e2' e3', t3')
-            else Just (M.If (cast M.Bool (tagify t1' e1')) (tagify t2' e2') (tagify t2' e3'), M.TAGGED)
+            else Just (M.If (cast M.BOOL (tagify t1' e1')) (tagify t2' e2') (tagify t2' e3'), M.TAGGED)
         _ -> Nothing
 -- PrimOps
 translateExp g (D.PrimOp D.Equal  [e1, e2]) = 
