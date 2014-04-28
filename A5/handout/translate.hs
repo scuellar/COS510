@@ -19,8 +19,6 @@ tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e
 tagify (M.ARROW t1 t2) (M.Apply e1 e2) 
 tagify (M.ARROW t1 t2) e =
   M.TagFun (M.Fun "_tag_fun" "_tag_var" M.TAGGED M.TAGGED (M.Apply e (cast t1 (M.Var (s1 ++ "_tag")))))
--- Fail otherwise with an error:
-tagify t e = error $ "Called tagify with something that isn't taggable! Cannot unify " ++ t ++ " with expression: " ++ e
 
 -- Takes type, expression, casts it to that type
 -- Int and Bool, resulting thing wouldn't type check - maybe we want to reject, maybe never call that way
