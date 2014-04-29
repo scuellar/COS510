@@ -16,7 +16,8 @@ tagify M.BOOL (M.Bool i) = M.TagBool (M.Bool i)  -- Not a speciall case, could d
 tagify M.INT e = M.TagInt e
 tagify M.BOOL e = M.TagBool e
 tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e 
-tagify (M.ARROW t1 t2) e =
+tagify (M.ARROW M.TAGGED t2) e = M.TagFun (M.Fun "_tag_fun" "_tag_var" M.TAGGED M.TAGGED e)
+tagify (M.ARROW t1 t2) e =  
   M.TagFun (M.Fun "_tag_fun" "_tag_var" M.TAGGED M.TAGGED (M.Apply e (cast t1 (M.Var "_tag_var"))))
 -- Fail otherwise with an error:
 tagify t e = error $ "Called tagify with something that isn't taggable! Cannot unify " ++ (show t) ++ " with expression: " ++ (show e)
@@ -30,7 +31,8 @@ cast M.INT (M.TagInt e) = e
 cast M.BOOL (M.TagBool e) = e
 cast M.INT e = M.AsInt e
 cast M.BOOL e = M.AsBool e
-cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e
+cast M.TAGGED (M.TagFun e) = (M.TagFun e)
+cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e --Not sure about this
 cast (M.ARROW t1 t2) e = M.AsFun (M.Fun "_cast_fun" "_cast_var" M.TAGGED M.TAGGED (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
 cast t e = error $ "Called cast with something that isn't castable! Cannot unify " ++ (show t) ++ " with expresison " ++ (show e) 
 
@@ -132,8 +134,8 @@ translateExp g (D.Check e t) =
 -- Untyped funs
 translateExp g (D.UTFun s1 s2 e) = 
     case translateExp (Map.insert s2 M.TAGGED (Map.insert s1 (M.ARROW M.TAGGED M.TAGGED) g)) e of
-        Just (e2', M.TAGGED) -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED e2', M.TAGGED)
-        Just (e2', t2') -> Just (M.Fun s1 s2 M.TAGGED M.TAGGED (tagify t2' e2'), M.TAGGED) -- should the fn have type ARROW TAGGED t2'?
+        Just (e2', M.TAGGED) -> Just (M.TagFun (M.Fun s1 s2 M.TAGGED M.TAGGED e2'), M.TAGGED)
+        Just (e2', t2') -> Just (M.TagFun (M.Fun s1 s2 M.TAGGED M.TAGGED (tagify t2' e2')), M.TAGGED) -- should the fn have type ARROW TAGGED t2'?
         _ -> Nothing
 -- Apply
 translateExp g (D.Apply e1 e2) = 
@@ -142,7 +144,9 @@ translateExp g (D.Apply e1 e2) =
         (Just (e1', (M.ARROW t1 t1')), Just (e2', t2')) -> 
             if t1 == t2'
             then Just (M.Apply e1' e2', t1')
-            else Just (M.Apply e1' (cast t1 (tagify t2' e2')), t1')
+            else (if t1==M.TAGGED
+                  then Just (M.Apply e1' (tagify t2' e2'), t1')
+                  else Just (M.Apply e1' (cast t1 (tagify t2' e2')), t1'))
         (Just (e1', M.TAGGED), Just (e2', M.TAGGED)) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) e1') e2', M.TAGGED)
         (Just (e1', M.TAGGED), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) e1') (tagify t2' e2'), M.TAGGED)
         (Just (e1', t1'), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) (tagify t1' e1')) (tagify t2' e2'), M.TAGGED)
