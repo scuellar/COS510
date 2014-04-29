@@ -117,10 +117,12 @@ translateExp g (D.PrimOp D.Negate [e1]) =
 -- Funs
 translateExp g (D.Fun f x tx tf e) = -- I just realised - I think that the function type is different to what I originally thought
     case translateExp (Map.insert x (translateType tx) (Map.insert f (M.ARROW (translateType tx) (translateType tf)) g)) e of
-        Just (e2', t2') -> 
-            if t2' == (translateType tf)
-            then Just (M.Fun f x (translateType tx) t2' e2', M.ARROW (translateType tx) t2')
-            else Nothing
+        Just (e2', t3) ->
+          let t2 = translateType tf in
+                   (if (t3 == t2)
+                    then Just (M.Fun f x (translateType tx) t2 e2', M.ARROW (translateType tx) t3)
+                    else Just (M.Fun f x (translateType tx) t2 (cast t2 (tagify t3 e2')), M.ARROW (translateType tx) t3))
+                        
 -- Checks
 translateExp g (D.Check e t) = 
     case translateExp g e of
