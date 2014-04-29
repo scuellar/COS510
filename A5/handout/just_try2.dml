@@ -1,1 +1,1 @@
-(fun doubleapp fn = fn (fn) end)
+(fun doubleapp fn = fn (fn) end)(fun sumone n = n + 1 end)

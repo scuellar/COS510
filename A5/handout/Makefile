@@ -9,6 +9,7 @@ test : dminml
 	./dminml fact_untyped.dml
 	./dminml just_try.dml
 	./dminml just_try2.dml
+	./dminml moretest2.dml
 
 Parser.hs : Parser.y
 	happy Parser.y
