@@ -40,13 +40,13 @@ typing g (PrimOp p es) =
   else
     Nothing
 -- typing g e = ...
-typing g (Fun f x tx TAGGED e) = 
-    if typing (Map.insert x tx (Map.insert f TAGGED g)) e == Just TAGGED
-    then Just (ARROW tx TAGGED)
-    else Nothing
 typing g (Fun f x tx tf e) = 
     if typing (Map.insert x tx (Map.insert f (ARROW tx tf) g)) e == Just tf
     then Just (ARROW tx tf)
+    else Nothing
+typing g (Fun f x tx TAGGED e) = 
+    if typing (Map.insert x tx (Map.insert f TAGGED g)) e == Just TAGGED
+    then Just (ARROW tx TAGGED)
     else Nothing
 typing g (Apply e1 e2) =
     case (typing g e1, typing g e2) of
