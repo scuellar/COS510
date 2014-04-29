@@ -33,7 +33,8 @@ cast M.INT e = M.AsInt e
 cast M.BOOL e = M.AsBool e
 cast M.TAGGED (M.TagFun e) = (M.TagFun e)
 cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e --Not sure about this
-cast (M.ARROW t1 t2) e = M.AsFun (M.Fun "_cast_fun" "_cast_var" t1 t2 (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
+cast (M.ARROW t1 t2) e = (M.Fun "_cast_fun" "_cast_var" t1 t2 (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
+cast (M.ARROW t1 t2) e = (M.Fun "_cast_fun" "_cast_var" t1 t2 (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
 cast t e = error $ "Called cast with something that isn't castable! Cannot unify " ++ (show t) ++ " with expresison " ++ (show e) 
 
 translateOp :: D.PrimOp -> M.PrimOp
@@ -141,7 +142,7 @@ translateExp g (D.UTFun s1 s2 e) =
 -- Apply
 translateExp g (D.Apply e1 e2) = 
     case (translateExp g e1, translateExp g e2) of
-        (Just (e1', (M.ARROW t1 t1')), (Just (e2', M.TAGGED))) -> Just (M.Apply e1' (tagify t1 e2'), t1')
+        (Just (e1', (M.ARROW t1 t1')), (Just (e2', M.TAGGED))) -> Just (M.Apply e1' (cast t1 e2'), t1')
         (Just (e1', (M.ARROW t1 t1')), Just (e2', t2')) -> 
             if t1 == t2'
             then Just (M.Apply e1' e2', t1')
