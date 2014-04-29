@@ -1,0 +1,1 @@
+(fun doubleapp fn = fn end)

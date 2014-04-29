@@ -1,0 +1,1 @@
+((fun doubleapp fn = fn(fn) end)(fun inc n = n + 1 end))(5)
