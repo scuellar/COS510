@@ -120,8 +120,8 @@ translateExp g (D.Fun f x tx tf e) = -- I just realised - I think that the funct
         Just (e2', t3) ->
           let t2 = translateType tf in
                    (if (t3 == t2)
-                    then Just (M.Fun f x (translateType tx) t2 e2', M.ARROW (translateType tx) t3)
-                    else Just (M.Fun f x (translateType tx) t2 (cast t2 (tagify t3 e2')), M.ARROW (translateType tx) (translateType tf)))
+                    then Just (M.Fun f x (translateType tx) t2 e2', M.ARROW (translateType tx) t2)
+                    else Just (M.Fun f x (translateType tx) t2 (cast t2 (tagify t3 e2')), M.ARROW (translateType tx) t2))
 -- Checks
 translateExp g (D.Check e t) = 
     case translateExp g e of
