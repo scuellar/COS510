@@ -33,7 +33,7 @@ cast M.INT e = M.AsInt e
 cast M.BOOL e = M.AsBool e
 cast M.TAGGED (M.TagFun e) = (M.TagFun e)
 cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e --Not sure about this
-cast (M.ARROW t1 t2) e = M.AsFun (M.Fun "_cast_fun" "_cast_var" M.TAGGED M.TAGGED (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
+cast (M.ARROW t1 t2) e = (M.Fun "_cast_fun" "_cast_var" t1 t2 (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
 cast t e = error $ "Called cast with something that isn't castable! Cannot unify " ++ (show t) ++ " with expresison " ++ (show e) 
 
 translateOp :: D.PrimOp -> M.PrimOp
