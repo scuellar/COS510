@@ -32,10 +32,13 @@ typing g (If e e1 e2) = do
   if t == BOOL && t1 == t2 then Just t1 else Nothing
 typing g (PrimOp p es) =
   let (args, res) = typeOfPrimOp p
-  in do
-    ts <- mapM (\e -> typing g e) es
-    mapM (\(t,t') -> if t == t' then Just () else Nothing) $ List.zip ts args
-    Just res
+  in if List.length es == List.length args then
+    do
+      ts <- mapM (\e -> typing g e) es
+      mapM (\(t,t') -> if t == t' then Just () else Nothing) $ List.zip ts args
+      Just res
+  else
+    Nothing
 -- typing g e = ...
 typing g (Fun f x tx tf e) = 
     if typing (Map.insert x tx (Map.insert f (ARROW tx tf) g)) e == Just tf

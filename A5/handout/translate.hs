@@ -15,7 +15,6 @@ tagify M.INT (M.Int i) = M.TagInt (M.Int i) -- Not a speciall case, could delete
 tagify M.BOOL (M.Bool i) = M.TagBool (M.Bool i)  -- Not a speciall case, could delete
 tagify M.INT e = M.TagInt e
 tagify M.BOOL e = M.TagBool e
-tagify (M.ARROW M.TAGGED M.TAGGED) e = M.TagFun e 
 tagify (M.ARROW t1 t2) e =
   M.TagFun (M.Fun "_tag_fun" "_tag_var" M.TAGGED M.TAGGED (M.Apply e (cast t1 (M.Var "_tag_var"))))
 -- Fail otherwise with an error:
@@ -30,7 +29,6 @@ cast M.INT (M.TagInt e) = e
 cast M.BOOL (M.TagBool e) = e
 cast M.INT e = M.AsInt e
 cast M.BOOL e = M.AsBool e
-cast (M.ARROW M.TAGGED M.TAGGED) (M.TagFun e) = e
 cast (M.ARROW t1 t2) e = M.AsFun (M.Fun "_cast_fun" "_cast_var" M.TAGGED M.TAGGED (M.Apply e (tagify t1 (M.Var "_cast_var")))) --get free vars?
 cast t e = error $ "Called cast with something that isn't castable! Cannot unify " ++ (show t) ++ " with expresison " ++ (show e) 
 
