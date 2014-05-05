@@ -114,13 +114,53 @@ printer s = Embed (\_ -> putStr $ s ++ "\n") Nil
 type Gamma = M.Map Name Typ
 
 typeExp :: Gamma -> Exp -> Either String Typ
-typeExp = undefined
+typeExp g (EVar str) = case (M.lookup str g) of
+  Just t -> Right t
+  Nothing -> Left $ ("Variable not in the environment: " ++ str )
+typeExp g (ETup ls) = case (typeExp' g ls) of
+  Left e -> Left e
+  Right ls' -> Right (TTup ls')
+typeExp' g ls = case ls of
+  x:ls' -> case (typeExp g x, typeExp' g ls) of
+    (Left e, _) -> Left e
+    (_, Left e) -> Left e
+    (Right t, Right ls') -> Right (t:ls')
+  [] -> Right []
 
 typePat :: Gamma -> Pattern -> Typ -> Either String Gamma
-typePat = undefined
+typePat g Wild _ = Right g
+typePat g (PVar str) t = case (M.lookup str g) of
+  Just t -> Left $ "Variable "++ str++" already in context."
+  Nothing -> Right (M.insert str t g)
+typePat g (PTup ls) (TChan t) = Left "List of channels expected, but got channel type."
+typePat g (PTup ls) (TTup t) = case (ls,t) of
+  ([], unitT) -> Right g
+  (x:ls', tau:t') -> case (typePat g (PTup ls') (TTup t')) of
+    Right g' -> typePat g' x tau
+    Left e -> Left e
+  _ -> Left "Mismatch of type for a pattern."
 
 checkPi :: Gamma -> Pi -> Either String ()
-checkPi = undefined
+checkPi _ Nil = Right ()
+checkPi g (p1 :|: p2) = case (checkPi g p1, checkPi g p2) of
+  (Left e, _) -> Left e
+  (_ , Left e) -> Left e
+  (Right t1, Right t2) -> Right t1
+checkPi g (New str t p) = case (M.lookup str g) of
+  Just _ -> Left $ "Varaible "++str++" already in context."
+  Nothing -> checkPi (M.insert str t g) p
+checkPi g (Out str e) = case (M.lookup str g, typeExp g e) of
+  (Nothing, _) -> Left $ "Variable "++ str++" not in the context"
+  (_ , Left e) -> Left e
+  (Just (TTup t1), Right t2) -> Left $ "Channel expected but found a tupple in: " ++ str
+  (Just (TChan t1), Right t2) -> if (t1==t2) then Right () else (Left $ "Mismatching chennel types: "++ show(t1) ++", "++ show(t2))
+checkPi g (Inp str pat p) = case (M.lookup str g) of
+  Nothing -> Left $ "Variable not in context: " ++ show(str)
+  Just t -> case (typePat g pat t) of
+    Left e -> Left e
+    Right g' -> checkPi g' p
+checkPi g (RepInp str pat p) = checkPi g (Inp str pat p)
+--TODO Embed
 
 check :: Pi -> Either String ()
 check p = checkPi M.empty p
