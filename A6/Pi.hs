@@ -212,7 +212,7 @@ run s (New str t p) = do
 run s (Out str e) = writeChan (getCh s  str) (eval_e s e)
 run s (Inp str pat p) = do
   inVal <- readChan $ getCh s  str
-  run (M.insert str inVal s) p
+  run (eval_p s pat inVal) p
 run s (RepInp str pat p) = do
   inVal <- readChan $ getCh s  str
   parallel [run (M.insert str inVal s) p, run s (RepInp str pat p)] --wait_forIO
