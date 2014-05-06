@@ -120,12 +120,12 @@ typeExp g (EVar str) = case (M.lookup str g) of
 typeExp g (ETup ls) = case (typeExp' g ls) of
   Left e -> Left e
   Right ls' -> Right (TTup ls')
-typeExp' g ls = case ls of
-  x:ls' -> case (typeExp g x, typeExp' g ls) of
-    (Left e, _) -> Left e
-    (_, Left e) -> Left e
-    (Right t, Right ls') -> Right (t:ls')
-  [] -> Right []
+  where
+    typeExp' g (x:ls') = case (typeExp g x, typeExp' g ls) of
+      (Left e, _) -> Left e
+      (_, Left e) -> Left e
+      (Right t, Right ls') -> Right (t:ls')
+    typeExp' g [] = Right []
 
 typePat :: Gamma -> Pattern -> Typ -> Either String Gamma
 typePat g Wild _ = Right g
@@ -160,7 +160,7 @@ checkPi g (Inp str pat p) = case (M.lookup str g) of
     Left e -> Left e
     Right g' -> checkPi g' p
 checkPi g (RepInp str pat p) = checkPi g (Inp str pat p)
---TODO Embed
+checkPi g (Embed f p) = checkPi g p --TODO Check Embed
 
 check :: Pi -> Either String ()
 check p = checkPi M.empty p
@@ -180,8 +180,14 @@ type Env = M.Map Name Value
 -- eval_p env p v 
 -- match a value v against a pattern p and extend environment env
 eval_p :: Env -> Pattern -> Value -> Env
-eval_p = undefined
-
+eval_p s pat val = case (pat, val) of
+  (PVar str, _ ) -> M.insert str val s
+  (PTup _, VChan _ ) -> error $ "Can't unpack value " ++ show(val) ++ " into pattern " ++ show(pat)
+  (PTup [], VTup []) -> s
+  (PTup [], VTup lval) -> error $ "Unpacked values " ++ show(lval)
+  (PTup lpat, VTup []) -> error $ "Not enough values to unpack " ++ show(lpat)
+  (PTup (pat':lpat), VTup (val':lval)) -> eval_p (eval_p s pat' val) (PTup lpat) (VTup lval)
+    
 -- eval_e env e
 -- evaluates e to a value in environment env
 eval_e :: Env -> Exp -> Value
@@ -191,8 +197,28 @@ eval_e env (ETup es) = VTup (eval_es env es)
     eval_es env [] = []
     eval_es env (e:es) = eval_e env e : eval_es env es
 
+--Some helper funcitons
+getCh :: Env -> String -> Chan Value
+getCh s str = case s M.! str of
+  VChan c -> c
+  VTup v -> error $ "Expecting a channel from '" ++ str++ "' but got " ++ show(v)
+
 run :: Env -> Pi -> IO ()
-run = undefined
+run s Nil = putStr "Thread done. \n" --Is there a better way to do nothing?
+run s (p1 :|: p2) = parallel [run s p1, run s p2] --wait_forIO
+run s (New str t p) = do
+                      c <- newChan
+                      run (M.insert str (VChan c) s) p
+run s (Out str e) = writeChan (getCh s  str) (eval_e s e)
+run s (Inp str pat p) = do
+  inVal <- readChan $ getCh s  str
+  run (M.insert str inVal s) p
+run s (RepInp str pat p) = do
+  inVal <- readChan $ getCh s  str
+  parallel [run (M.insert str inVal s) p, run s (RepInp str pat p)] --wait_forIO
+run s (Embed printF p) = do
+  printF s
+  run s p
 
 start :: Pi -> IO ()
 start p = run M.empty p

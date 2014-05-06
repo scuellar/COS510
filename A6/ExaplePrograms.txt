@@ -1,0 +1,7 @@
+Nil
+
+(Nil :|: Nil)
+
+((printer "Sometimes this text will mix with the other one i") :|:  (printer "In the same manner this text might partially mix with the previous one")) 
+
+(New "ch1" unitT (New "ch2" unitT (Out "ch1" (EVar "ch2")  :|: Embed (\_ -> putStr $ "lololo") (Inp "ch1" (PVar "x") Nil) )))
