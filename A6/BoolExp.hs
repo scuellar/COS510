@@ -27,22 +27,33 @@ type BEnv = M.Map Name Bool
 compile_b :: Name -> Name -> BoolExp -> Pi
 compile_b tchan fchan (BVar str) = Out (str ++ "_query_") unitE :|: relayU (str ++ "_True_") tchan :|: relayU (str ++ "_False_") fchan
 compile_b tchan fchan (BVal b) = if b then (Out tchan unitE) else (Out fchan unitE)
-compile_b tchan fchan (b1 :&&: b2) = newChs ["_and_chan_left_true", "_and_chan_left_false","_and_chan_right_true", "_and_chan_right_false"] unitT
-                                               (compile_b "_and_chan_left_true" "_and_chan_left_false" b1 :|:
-                                                compile_b "_and_chan_right_true" "_and_chan_right_false" b2 :|:
-                                                relayU "_and_chan_left_false" fchan :|:
-                                                relayU "_and_chan_right_false" fchan :|:
-                                                multiRelay ["_and_chan_left_true", "_and_chan_right_true"] tchan)
-compile_b tchan fchan (b1 :||: b2) = newChs ["_or_chan_left_true", "_or_chan_left_false","_or_chan_right_true", "_or_chan_right_false"] unitT
-                                               (compile_b "_or_chan_left_true" "_or_chan_left_false" b1 :|:
-                                                compile_b "_or_chan_right_true" "_or_chan_right_false" b2 :|:
-                                                relayU "_or_chan_left_true" tchan :|:
-                                                relayU "_or_chan_right_true" tchan :|:
-                                                multiRelay ["_or_chan_left_false", "_or_chan_right_false"] fchan)
-compile_b tchan fchan (Not b) = newChs ["_not_chan_true", "_not_chan_false"] unitT
-                                               (compile_b "_not_chan_true" "_not_chan_false" b :|:
-                                                relayU "_not_chan_true" fchan :|:
-                                                relayU "_not_chan_false" tchan)
+compile_b tchan fchan (b1 :&&: b2) = let left_true = "_and_chan_left_true_" ++ (show b1)
+                                         left_false = "_and_chan_left_false_" ++ (show b1)
+                                         right_true = "_and_chan_right_true_" ++ (show b2)
+                                         right_false = "_and_chan_right_false_" ++ (show b2)
+                                     in newChs [left_true, left_false,right_true, right_false] unitT
+                                        (compile_b left_true left_false b1 :|:
+                                         compile_b right_true "_and_chan_right_false" b2 :|:
+                                         relayU left_false fchan :|:
+                                         relayU right_false fchan :|:
+                                         multiRelay [left_true, right_true] tchan)
+                                                       
+compile_b tchan fchan (b1 :||: b2) = let left_true = "_or_chan_left_true_" ++ (show b1)
+                                         left_false = "_or_chan_left_false_" ++ (show b1)
+                                         right_true = "_or_chan_right_true_" ++ (show b2)
+                                         right_false = "_or_chan_right_false_" ++ (show b2)
+                                     in newChs [left_true, left_false,right_true, right_false] unitT
+                                        (compile_b left_true left_false b1 :|:
+                                         compile_b right_true right_false b2 :|:
+                                         relayU left_true tchan :|:
+                                         relayU right_true tchan :|:
+                                         multiRelay [left_false, right_false] fchan)
+compile_b tchan fchan (Not b) = let true = "_not_chan_true" ++ (show b)
+                                    false = "_not_chan_false" ++ (show b)
+                                in newChs [true, false] unitT
+                                   (compile_b true false b :|:
+                                    relayU true fchan :|:
+                                    relayU false tchan)
 
 --Some Helper funcitons:
 --Creates new channels from a list

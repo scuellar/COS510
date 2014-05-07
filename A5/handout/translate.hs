@@ -152,7 +152,7 @@ translateExp g (D.Apply e1 e2) =
                   else Just (M.Apply e1' (cast t1 (tagify t2' e2')), t1'))
         (Just (e1', M.TAGGED), Just (e2', M.TAGGED)) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) e1') e2', M.TAGGED)
         (Just (e1', M.TAGGED), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) e1') (tagify t2' e2'), M.TAGGED)
-        (Just (e1', t1'), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) (tagify t1' e1')) (tagify t2' e2'), M.TAGGED)
+        --(Just (e1', t1'), Just (e2', t2')) -> Just (M.Apply (cast (M.ARROW M.TAGGED M.TAGGED) (tagify t1' e1')) (tagify t2' e2'), M.TAGGED)
         _ -> Nothing
 -- Vars
 translateExp g (D.Var s) =
