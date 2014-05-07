@@ -33,7 +33,7 @@ compile_b tchan fchan (b1 :&&: b2) = let left_true = "_and_chan_left_true_" ++ (
                                          right_false = "_and_chan_right_false_" ++ (show b2)
                                      in newChs [left_true, left_false,right_true, right_false] unitT
                                         (compile_b left_true left_false b1 :|:
-                                         compile_b right_true "_and_chan_right_false" b2 :|:
+                                         compile_b right_true right_false b2 :|:
                                          relayU left_false fchan :|:
                                          relayU right_false fchan :|:
                                          multiRelay [left_true, right_true] tchan)
