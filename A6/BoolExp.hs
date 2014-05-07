@@ -54,6 +54,11 @@ newChs (ch:lch) t p = New ch t (newChs lch t p)
 relayU :: Name -> Name -> Pi
 relayU ch1 ch2 = Inp ch1 (PVar "_temp_var!") (Out ch2 unitE)
 
+
+--Server: Receives unit from first channel and sends unit to the the second channel
+relayU_serv :: Name -> Name -> Pi
+relayU_serv ch1 ch2 = RepInp ch1 (PVar "_temp_var!") (Out ch2 unitE)
+
 --Receives unit from a list of channels and then sends unit to the the last channel
 multiRelay :: [Name] -> Name -> Pi
 multiRelay [] ch = (Out ch unitE)
@@ -68,7 +73,7 @@ multiRelay (ch1:lch) ch2 = Inp ch1 (PVar "_temp_var!") (multiRelay lch ch2)
 compile_benv :: BEnv -> Pi -> Pi
 compile_benv benv p = compile_blist (M.toList benv) p where
   compile_blist [] p = p
-  compile_blist ((str, b):lpair) p =  newChs [query_ch, true_ch, false_ch] unitT ( relayU query_ch ans_ch :|: compile_blist lpair p) where
+  compile_blist ((str, b):lpair) p =  newChs [query_ch, true_ch, false_ch] unitT ( relayU_serv query_ch ans_ch :|: compile_blist lpair p) where
     query_ch = str++"_query_"
     ans_ch = str++"_"++show(b)++"_"
     true_ch = str++"_True_"

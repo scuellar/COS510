@@ -7,3 +7,4 @@ Nil
 (New "ch1" unitT (New "ch2" (TChan unitT) (Embed (\s -> putStr $ show(s M.! "ch1"))  (Out "ch2" (EVar "ch1")) :|:  (Inp "ch2” (PVar "x") Nil) )))
 
 (New "ch1" unitT (New "ch2" (TChan unitT) ((Out "ch2" (EVar "ch1")) :|:  Embed (\s -> putStr $ "Second thred right over here") (Inp "ch2" (PVar "x") (Embed (\s -> putStr $ show(s M.! "x")) Nil)))))
+
