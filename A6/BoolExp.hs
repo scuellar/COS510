@@ -28,23 +28,21 @@ compile_b :: Name -> Name -> BoolExp -> Pi
 compile_b tchan fchan (BVar str) = undefined
 compile_b tchan fchan (BVal b) = if b then (Out tchan unitE) else (Out fchan unitE)
 compile_b tchan fchan (b1 :&&: b2) = newChs ["_and_chan_left_true", "_and_chan_left_false","_and_chan_right_true", "_and_chan_right_false"] unitT
-                                               ((compile_b "_and_chan_left_true" "_and_chan_left_false" b1) :|:
-                                                (compile_b "_and_chan_right_true" "_and_chan_right_false" b2) :|:
-                                                (relayU "_and_chan_left_false" fchan) :|:
-                                                (relayU "_and_chan_right_false" fchan) :|:
-                                                (multiRelay ["_and_chan_left_true", "_and_chan_right_true"] tchan) :|:
-                                                (multiRelay ["_and_chan_right_true", "_and_chan_left_true"] tchan))
+                                               (compile_b "_and_chan_left_true" "_and_chan_left_false" b1 :|:
+                                                compile_b "_and_chan_right_true" "_and_chan_right_false" b2 :|:
+                                                relayU "_and_chan_left_false" fchan :|:
+                                                relayU "_and_chan_right_false" fchan :|:
+                                                multiRelay ["_and_chan_left_true", "_and_chan_right_true"] tchan)
 compile_b tchan fchan (b1 :||: b2) = newChs ["_or_chan_left_true", "_or_chan_left_false","_or_chan_right_true", "_or_chan_right_false"] unitT
-                                               ((compile_b "_or_chan_left_true" "_or_chan_left_false" b1) :|:
-                                                (compile_b "_or_chan_right_true" "_or_chan_right_false" b2) :|:
-                                                (relayU "_or_chan_left_true" tchan) :|:
-                                                (relayU "_or_chan_right_true" tchan) :|:
-                                                (multiRelay ["_or_chan_left_false", "_or_chan_right_false"] tchan) :|:
-                                                (multiRelay ["_or_chan_right_false", "_or_chan_left_false"] tchan))
+                                               (compile_b "_or_chan_left_true" "_or_chan_left_false" b1 :|:
+                                                compile_b "_or_chan_right_true" "_or_chan_right_false" b2 :|:
+                                                relayU "_or_chan_left_true" tchan :|:
+                                                relayU "_or_chan_right_true" tchan :|:
+                                                multiRelay ["_or_chan_left_false", "_or_chan_right_false"] fchan)
 compile_b tchan fchan (Not b) = newChs ["_not_chan_true", "_not_chan_false"] unitT
-                                               ((compile_b "_not_chan_true" "_not_chan_false" b) :|:
-                                                (relayU "_not_chan_true" fchan) :|:
-                                                (relayU "_not_chan_false" tchan))
+                                               (compile_b "_not_chan_true" "_not_chan_false" b :|:
+                                                relayU "_not_chan_true" fchan :|:
+                                                relayU "_not_chan_false" tchan)
 
 --Some Helper funcitons:
 --Creates new channels from a list
@@ -70,7 +68,7 @@ multiRelay (ch1:lch) ch2 = Inp ch1 (PVar "_temp_var!") (multiRelay lch ch2)
 -- communicates with a compiled Boolean expression containing free
 -- variables from the environment
 compile_benv :: BEnv -> Pi -> Pi
-compile_benv benv p = undefined
+compile_benv benv p = p
 
 start_bool :: BEnv -> BoolExp -> IO ()
 start_bool benv bexp = 
