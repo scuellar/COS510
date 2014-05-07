@@ -151,12 +151,14 @@ compile_lam c ch g (LVar x) = do
     Good t -> return t
     Bad e -> error e
   return (tp, Out ch (EVar x))
-compile_lam c ch g (LAbs x lt e ) = do
-  (t1, q ) <- compile_lam c ch (M.insert x lt g) e
-  tp <- case type_of g (LAbs x lt e) of
-    Good t -> return t
-    Bad e -> error e
-  return (tp, Inp x (PVar x) q) -- choose a fresh name --Check the channel name
+compile_lam c ch g (LAbs x t1 e ) = do
+  (t2, q2) <- compile_lam c "n2" (M.insert x t1 g) e
+  tp <- return $ LTArrow t1 t2
+  q1 <- return $ New "n1" (TChan (typeTrans t1)) ( --fresh variables
+    New "n2" (TChan (typeTrans t2)) ( --fresh variables
+       Out ch (ETup [EVar "n1", EVar "n2"]) :|:
+       Inp "n1" (PVar x) q2))
+  return (tp, q1) -- choose a fresh name --Check the channel name
 compile_lam c ch g (e1 :@: e2 ) = do
   (t2, q2) <- compile_lam c "temp_channel" g e2
   (t1, q1) <- compile_lam c ch g e1

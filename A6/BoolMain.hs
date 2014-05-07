@@ -1,3 +1,4 @@
+module BoolMain where
 import BoolExp
 import qualified Data.Map as M 
 
@@ -18,8 +19,8 @@ test2 = (env1, f)
 test3 = (env1, t :&&: (f :||: t) :&&: (Not f))
 test4 = (env2, BVar x)
 test5 = (env3, BVar x :&&: BVar y)
-test6 = (env3, BVar x :&&: (BVar y :||: (t :&&: (f :||: t))))
-test7 = (env3, BVar x :&&: (BVar y :||: (t :&&: (f :||: f))))
+test6 = (env3, BVar x :&&: (BVar y :||: (t :&&: (f :||: t)))) --True
+test7 = (env3, BVar x :&&: (BVar y :||: (t :&&: (f :||: f)))) --False
 test8 = (env3, Not (BVar y))
 test9 = (env3, Not (BVar y :&&: BVar x))
 test10 = (env3, BVar y :||: (BVar x :&&: BVar x))
