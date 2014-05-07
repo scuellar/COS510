@@ -25,7 +25,7 @@ type BEnv = M.Map Name Bool
 -- sends a message on tchan if the boolean expression evaluates to true
 -- sends a message on fchan if the boolean expression evaluates to false
 compile_b :: Name -> Name -> BoolExp -> Pi
-compile_b tchan fchan (BVar str) = undefined
+compile_b tchan fchan (BVar str) = Out (str ++ "_query_") unitE :|: relayU (str ++ "_True_") tchan :|: relayU (str ++ "_False_") fchan
 compile_b tchan fchan (BVal b) = if b then (Out tchan unitE) else (Out fchan unitE)
 compile_b tchan fchan (b1 :&&: b2) = newChs ["_and_chan_left_true", "_and_chan_left_false","_and_chan_right_true", "_and_chan_right_false"] unitT
                                                (compile_b "_and_chan_left_true" "_and_chan_left_false" b1 :|:
@@ -61,14 +61,19 @@ multiRelay (ch1:lch) ch2 = Inp ch1 (PVar "_temp_var!") (multiRelay lch ch2)
 
 
 
-
-
 -- TASK!
 -- compile a boolean variable environment into a process that
 -- communicates with a compiled Boolean expression containing free
 -- variables from the environment
 compile_benv :: BEnv -> Pi -> Pi
-compile_benv benv p = p
+compile_benv benv p = compile_blist (M.toList benv) p where
+  compile_blist [] p = p
+  compile_blist ((str, b):lpair) p =  newChs [query_ch, true_ch, false_ch] unitT ( relayU query_ch ans_ch :|: compile_blist lpair p) where
+    query_ch = str++"_query_"
+    ans_ch = str++"_"++show(b)++"_"
+    true_ch = str++"_True_"
+    false_ch = str++"_False_"
+
 
 start_bool :: BEnv -> BoolExp -> IO ()
 start_bool benv bexp = 
