@@ -121,7 +121,7 @@ typeExp g (ETup ls) = case (typeExp' g ls) of
   Left e -> Left e
   Right ls' -> Right (TTup ls')
   where
-    typeExp' g (x:ls') = case (typeExp g x, typeExp' g ls) of
+    typeExp' g (x:ls') = case (typeExp g x, typeExp' g ls') of
       (Left e, _) -> Left e
       (_, Left e) -> Left e
       (Right t, Right ls') -> Right (t:ls')
@@ -134,9 +134,9 @@ typePat g (PVar str) t = case (M.lookup str g) of
   Nothing -> Right (M.insert str t g)
 typePat g (PTup ls) (TChan t) = Left "List of channels expected, but got channel type."
 typePat g (PTup ls) (TTup t) = case (ls,t) of
-  ([], unitT) -> Right g
-  (x:ls', tau:t') -> case (typePat g (PTup ls') (TTup t')) of
-    Right g' -> typePat g' x tau
+  ([], []) -> Right g
+  ((x:ls'), (tau:t')) -> case (typePat g x tau) of
+    Right g' -> typePat g' (PTup ls') (TTup t')
     Left e -> Left e
   _ -> Left "Mismatch of type for a pattern."
 
@@ -150,13 +150,16 @@ checkPi g (New str t p) = case (M.lookup str g) of
   Just _ -> Left $ "Varaible "++str++" already in context."
   Nothing -> checkPi (M.insert str t g) p
 checkPi g (Out str e) = case (M.lookup str g, typeExp g e) of
-  (Nothing, _) -> Left $ "Variable "++ str++" not in the context"
+  (Nothing, _) -> Left $ "The channel "++ str++" is not in the context. Maybe you need to create the channel first."
   (_ , Left e) -> Left e
   (Just (TTup t1), Right t2) -> Left $ "Channel expected but found a tupple in: " ++ str
-  (Just (TChan t1), Right t2) -> if (t1==t2) then Right () else (Left $ "Mismatching chennel types: "++ show(t1) ++", "++ show(t2))
+  (Just (TChan t1), Right t2) -> if (t1==t2) then
+                                   Right ()
+                                 else (Left $ "Mismatching channel types. Expected: "++ show(t1) ++", actual: "++ show(t2) ++ ". In channel " ++ (show str) ++ " while sending " ++ (show e) )
 checkPi g (Inp str pat p) = case (M.lookup str g) of
   Nothing -> Left $ "Variable not in context: " ++ show(str)
-  Just t -> case (typePat g pat t) of
+  Just (TTup t) -> Left $ "Expecting a channel, but got a some type " ++ (show $ TTup t)
+  Just (TChan t) -> case (typePat g pat t) of
     Left e -> Left e
     Right g' -> checkPi g' p
 checkPi g (RepInp str pat p) = checkPi g (Inp str pat p)
@@ -186,7 +189,7 @@ eval_p s pat val = case (pat, val) of
   (PTup [], VTup []) -> s
   (PTup [], VTup lval) -> error $ "Unpacked values " ++ show(lval)
   (PTup lpat, VTup []) -> error $ "Not enough values to unpack " ++ show(lpat)
-  (PTup (pat':lpat), VTup (val':lval)) -> eval_p (eval_p s pat' val) (PTup lpat) (VTup lval)
+  (PTup (pat':lpat), VTup (val':lval)) -> eval_p (eval_p s pat' val') (PTup lpat) (VTup lval)
     
 -- eval_e env e
 -- evaluates e to a value in environment env
@@ -201,7 +204,7 @@ eval_e env (ETup es) = VTup (eval_es env es)
 getCh :: Env -> String -> Chan Value
 getCh s str = case s M.! str of
   VChan c -> c
-  VTup v -> error $ "Expecting a channel from '" ++ str++ "' but got " ++ show(v)
+  VTup v -> error $ "Expecting a channel from '" ++ str ++ "' but got " ++ show(VTup v)
 
 run :: Env -> Pi -> IO ()
 run s Nil = putStr "Thread done. \n" --Is there a better way to do nothing?
@@ -209,7 +212,7 @@ run s (p1 :|: p2) = parallel [run s p1, run s p2] --wait_forIO
 run s (New str t p) = do
                       c <- newChan
                       run (M.insert str (VChan c) s) p
-run s (Out str e) = writeChan (getCh s  str) (eval_e s e)
+run s (Out str e) = writeChan (getCh s str) (eval_e s e)
 run s (Inp str pat p) = do
   inVal <- readChan $ getCh s  str
   run (eval_p s pat inVal) p

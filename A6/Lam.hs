@@ -144,30 +144,45 @@ typeTrans (LTArrow t1 t2) = TTup [TChan (typeTrans t1), TChan (typeTrans t2)]
 
 -- Second, implement your compiler
 compile_lam :: IO Name -> Name -> Gamma -> Lam -> IO (LTyp, Pi)
-compile_lam c ch g LUnit = do
+compile_lam fresh ch g LUnit = do
   return (LTUnit, Out ch unitE)
-compile_lam c ch g (LVar x) = do
+compile_lam fresh ch g (LVar x) = do
   tp <- case type_of g (LVar x) of
     Good t -> return t
     Bad e -> error e
   return (tp, Out ch (EVar x))
-compile_lam c ch g (LAbs x t1 e ) = do
-  (t2, q2) <- compile_lam c "n2" (M.insert x t1 g) e
+compile_lam fresh ch g (LAbs x t1 e ) = do
+  n1 <- fresh
+  n2 <- fresh
+  (t2, q2) <- compile_lam fresh n2 (M.insert x t1 g) e
   tp <- return $ LTArrow t1 t2
-  q1 <- return $ New "n1" (TChan (typeTrans t1)) ( --fresh variables
-    New "n2" (TChan (typeTrans t2)) ( --fresh variables
-       Out ch (ETup [EVar "n1", EVar "n2"]) :|:
-       Inp "n1" (PVar x) q2))
+  q1 <- return $ New n1 (TChan (typeTrans t1)) (
+    New n2 (TChan (typeTrans t2)) (
+       Out ch (ETup [EVar n1, EVar n2]) :|:
+       Inp n1 (PVar x) q2))
   return (tp, q1) -- choose a fresh name --Check the channel name
-compile_lam c ch g (e1 :@: e2 ) = do
-  (t2, q2) <- compile_lam c "temp_channel" g e2
-  (t1, q1) <- compile_lam c ch g e1
-  tp <- case type_of g (e1 :@: e2 ) of
+compile_lam fresh ch g (e1 :@: e2 ) = do
+  ch1 <- fresh
+  ch2 <- fresh
+  n1 <- fresh
+  n2 <- fresh
+  x <- fresh
+  y <- fresh
+  (arrowt1t2, q1) <- compile_lam fresh ch1 g e1
+  (t1, q2) <- compile_lam fresh ch2 g e2
+  t2 <- case type_of g (e1 :@: e2 ) of
     Good t -> return t
     Bad e -> error e
-  return (tp, New "temp_channel" (typeTrans t2) (q1 :|: q2))
-compile_lam c ch g (LEff f e) = do
-  (t,q) <- compile_lam c ch g e
+  q <- return $ New ch1 (TChan $ TTup [TChan (typeTrans t1), TChan (typeTrans t2)]) (
+    New ch2 (TChan (typeTrans t1)) (
+       q1 :|:
+       q2 :|:
+       Inp ch1 (PTup [PVar n1, PVar n2]) ( -- Fresh variables
+          Inp ch2 (PVar x) (Out n1 (EVar x)) :|: --Fresh variables
+          Inp n2 (PVar y) (Out ch (EVar y)) ) ))
+  return (t2,q)
+compile_lam fresh ch g (LEff f e) = do
+  (t,q) <- compile_lam fresh ch g e
   return (t, Embed (\_ -> f) q)
 
 start_lam :: Lam -> IO ()
@@ -187,3 +202,13 @@ start_lam e = do
           putStrLn $ show wrap
           putStrLn $ "Error: \n" ++ err
         Right () -> start wrap
+
+tststart_lam :: Lam -> IO (Pi)
+tststart_lam e = do
+  r <- R.newIORef 0
+  let fresh = nameGenerator r
+  n <- fresh
+  (t,pi) <- compile_lam fresh n M.empty e
+  let wrap = New n (TChan $ typeTrans t) $ pi :|: Inp n Wild (printer "done!")
+  return wrap
+      
