@@ -1,0 +1,23 @@
+\documentclass[10pt, letterpaper,proof]{letter}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{proof}
+\usepackage{enumerate}
+
+\begin{document}
+
+Typing Rules for the Pi Calculus:
+
+
+\[\infer[]{\Gamma \vdash \mathtt{0} \ \mathsf{ wf}}{}\]
+
+\[\infer[]{\Gamma \vdash Q_1 | Q_2 \ \mathsf{ wf}}{\Gamma \vdash Q_1 \ \mathsf{ wf} & \Gamma \vdash Q_2 \ \mathsf{ wf}}\]
+
+\[\infer[]{\Gamma \vdash \mathsf{new}\ x:\tau, Q\ \mathsf{ wf}}{\Gamma, x:\tau \vdash Q \ \mathsf{ wf} & x \notin \Gamma}\]
+
+\[\infer[]{\Gamma \vdash \ \mathsf{send}\ e_1(\mathsf{pat}),Q \ \mathsf{ wf}}{\Gamma_1 \vdash \mathsf{pat}:\tau \rightarrow \Gamma_2 & \Gamma_1 \vdash e:\tau & \Gamma_1\Gamma_2 \vdash Q \ \mathsf{ wf}}\]
+
+\[\infer[]{\Gamma \vdash \ \mathsf{rec}!\ e(\mathsf{pat}),Q \ \mathsf{ wf}}{\Gamma \vdash \ \mathsf{rec}\ e(\mathsf{pat}),Q \ \mathsf{ wf}}\]
+
+\end{document}
