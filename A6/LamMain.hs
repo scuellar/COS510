@@ -1,3 +1,4 @@
+module LamMain where
 import Lam
 import qualified Data.Map as M 
 
@@ -33,6 +34,7 @@ test3 = LAbs y u $
             (fv :@: yv) :@: yv
 
 tests = [test1, test2, test3]
+
 
 run_tests :: [Test] -> IO ()
 run_tests ts = run_t 1 ts
