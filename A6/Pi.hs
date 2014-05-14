@@ -207,7 +207,7 @@ getCh s str = case s M.! str of
   VTup v -> error $ "Expecting a channel from '" ++ str ++ "' but got " ++ show(VTup v)
 
 run :: Env -> Pi -> IO ()
-run s Nil = putStr "Thread done. \n" --Is there a better way to do nothing?
+run s Nil = return () --putStr "Thread done. \n" --Is there a better way to do nothing?
 run s (p1 :|: p2) = parallel [run s p1, run s p2] --wait_forIO
 run s (New str t p) = do
                       c <- newChan
