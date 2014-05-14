@@ -1,59 +1,45 @@
 {-
-Syntax and Implementation of Boolean Expressions
+Syntax and Implementation of Natural Number Expressions
 ================================================
 -}
 
-module BoolExp where
+module NatExp where
 
 import Pi
 import qualified Data.Map.Strict as M 
 
-data BoolExp
-  = BVar Name
-  | BVal Bool
-  | BoolExp :&&: BoolExp
-  | BoolExp :||: BoolExp
-  | Not BoolExp
+data Nat = Z | S Nat
+  deriving Show
+
+data NatExp
+  = NVar Name
+  | NVal Nat
+  | NatExp :+: NatExp
   deriving Show
 
 -- Environments for interpreting boolean expressions
-type BEnv = M.Map Name Bool
+type NEnv = M.Map Name Nat
 
 -- TASK!
--- compile_b tchan fchan b
+-- compile_n tchan fchan b
 -- returns a process p that when juxtaposed with a compatible environment
--- sends a message on tchan if the boolean expression evaluates to true
--- sends a message on fchan if the boolean expression evaluates to false
-compile_b :: Name -> Name -> BoolExp -> Pi
-compile_b tchan fchan (BVar str) = Out (str ++ "_query_") unitE :|: relayU (str ++ "_True_") tchan :|: relayU (str ++ "_False_") fchan
-compile_b tchan fchan (BVal b) = if b then (Out tchan unitE) else (Out fchan unitE)
-compile_b tchan fchan (b1 :&&: b2) = let left_true = "_and_chan_left_true_" ++ (show b1)
-                                         left_false = "_and_chan_left_false_" ++ (show b1)
-                                         right_true = "_and_chan_right_true_" ++ (show b2)
-                                         right_false = "_and_chan_right_false_" ++ (show b2)
-                                     in newChs [left_true, left_false,right_true, right_false] unitT
-                                        (compile_b left_true left_false b1 :|:
-                                         compile_b right_true right_false b2 :|:
-                                         relayU left_false fchan :|:
-                                         relayU right_false fchan :|:
-                                         multiRelay [left_true, right_true] tchan)
-                                                       
-compile_b tchan fchan (b1 :||: b2) = let left_true = "_or_chan_left_true_" ++ (show b1)
-                                         left_false = "_or_chan_left_false_" ++ (show b1)
-                                         right_true = "_or_chan_right_true_" ++ (show b2)
-                                         right_false = "_or_chan_right_false_" ++ (show b2)
-                                     in newChs [left_true, left_false,right_true, right_false] unitT
-                                        (compile_b left_true left_false b1 :|:
-                                         compile_b right_true right_false b2 :|:
-                                         relayU left_true tchan :|:
-                                         relayU right_true tchan :|:
-                                         multiRelay [left_false, right_false] fchan)
-compile_b tchan fchan (Not b) = let true = "_not_chan_true" ++ (show b)
-                                    false = "_not_chan_false" ++ (show b)
-                                in newChs [true, false] unitT
-                                   (compile_b true false b :|:
-                                    relayU true fchan :|:
-                                    relayU false tchan)
+compile_n :: NatExp -> Pi
+compile_n (NVar name)  = undefined
+compile_n (NVal Z)     = RepInp (build_name (NVal Z)) (PVar "top") Nil
+compile_n (NVal (S n)) = RepInp (build_name (NVal (S n))) (PVar "top") ((Out "top" unitE)  :|: (Out (build_name (NVal n)) (EVar "top"))) :|: (compile_n (NVal n))
+compile_n (n1 :+: n2)  = let chanplus = (build_name (n1 :+: n2)) in
+                         let chan1 = (build_name n1) in
+                         let chan2 = (build_name n2) in
+                         newChs [chan1, chan2] (TChan unitT) $
+                         (RepInp chanplus (PVar "top") ((Out chan1 (EVar "top")) :|: (Out chan2 (EVar "top"))) :|: (compile_n n1) :|: (compile_n n2))
+
+--((Out (build_name n1) (PVar "top")) :|: (Out (build_name n2) (PVar "top")))
+
+build_name :: NatExp -> Name
+build_name (NVar name)  = name
+build_name (NVal (Z))   = "x"
+build_name (NVal (S n)) = (build_name (NVal n)) ++ "#"
+build_name (n1 :+: n2)  = build_name n1 ++ "+" ++ build_name n2
 
 --Some Helper funcitons:
 --Creates new channels from a list
@@ -78,28 +64,53 @@ multiRelay (ch1:lch) ch2 = Inp ch1 (PVar "_temp_var!") (multiRelay lch ch2)
 
 
 -- TASK!
--- compile a boolean variable environment into a process that
--- communicates with a compiled Boolean expression containing free
+-- compile a natural number variable environment into a process that
+-- communicates with a compiled Natural number expression containing free
 -- variables from the environment
-compile_benv :: BEnv -> Pi -> Pi
-compile_benv benv p = compile_blist (M.toList benv) p where
-  compile_blist [] p = p
-  compile_blist ((str, b):lpair) p =  newChs [query_ch, true_ch, false_ch] unitT ( relayU_serv query_ch ans_ch :|: compile_blist lpair p) where
+compile_nenv :: NEnv -> Pi -> Pi
+compile_nenv nenv p = compile_nlist (M.toList nenv) p where
+  compile_nlist [] p = p
+  compile_nlist ((str, n):lpair) p =  newChs [query_ch, true_ch, false_ch] unitT ( relayU_serv query_ch ans_ch :|: compile_nlist lpair p) where
     query_ch = str++"_query_"
-    ans_ch = str++"_"++show(b)++"_"
+    ans_ch = str++"_"++show(n)++"_"
     true_ch = str++"_True_"
     false_ch = str++"_False_"
 
+getNames :: NatExp -> [Name]
+getNames (NVar name)    = [build_name (NVar name)]
+getNames (NVal (Z))     = [build_name (NVal Z)]
+getNames (NVal (S n))   = (build_name (NVal (S n))):(getNames (NVal n))
+getNames (n1 :+: n2)    = (getNames n1) ++ (getNames n2)
 
-start_bool :: BEnv -> BoolExp -> IO ()
-start_bool benv bexp = 
-  start pi
+start_nat :: NEnv -> NatExp -> IO ()
+start_nat nenv nexp = start pi
     where
-      tchan = "t"
-      fchan = "f"   
-      pi = New tchan unitT $ 
-           New fchan unitT $ 
-           compile_benv benv (compile_b tchan fchan bexp) :|:
-           Inp tchan unitP (printer "true") :|:
-           Inp fchan unitP (printer "false")
-           
+        topchan = "top"
+        nchan = build_name nexp
+        pi = New topchan unitT $
+             New nchan (TChan unitT) $
+             newChs (getNames nexp) unitT $
+             compile_nenv nenv (compile_n nexp) :|:
+             Out nchan (EVar topchan) :|:
+             RepInp topchan unitP (printer "#")           
+
+start_nat_simple :: NEnv -> NatExp -> IO ()
+start_nat_simple nenv nexp = start pi
+    where
+        topchan = "top"
+        nchan = build_name nexp
+        pi = New topchan unitT $
+             New nchan (TChan unitT) $
+             newChs (getNames nexp) unitT $
+             compile_n nexp :|:
+             Out nchan (EVar topchan) :|:
+             RepInp topchan unitP (printer "#")  
+
+--start_nat nenv (NVar Z) = start Nil
+--start_nat nenv (NVar (S n)) = start pi
+--    where
+--        nchan = build_name n
+--        topchan = "top"
+--        pi = NewChs (recNewChs (S n)) (TChan UnitT) $
+--             compile_nenv nenv (compile_n topchan (NVar (S n))) :|:
+--             RepInp topchan unitP (printer "#")
