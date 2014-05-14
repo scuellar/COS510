@@ -7,6 +7,7 @@ module NatExp where
 
 import Pi
 import qualified Data.Map.Strict as M 
+import qualified Data.IORef as R
 
 data Nat = Z | S Nat
   deriving Show
@@ -15,23 +16,45 @@ data NatExp
   = NVar Name
   | NVal Nat
   | NatExp :+: NatExp
+  | NatExp :*: NatExp
   deriving Show
 
 -- Environments for interpreting boolean expressions
 type NEnv = M.Map Name Nat
 
+type Counter = R.IORef Integer
+
+nameGenerator :: Counter -> IO Name
+nameGenerator counter = do
+  n <- R.readIORef counter
+  R.modifyIORef' counter (+1)
+  return ("x" ++ show n)
+
 -- TASK!
 -- compile_n tchan fchan b
 -- returns a process p that when juxtaposed with a compatible environment
-compile_n :: NatExp -> Pi
-compile_n (NVar name)  = undefined
-compile_n (NVal Z)     = RepInp (build_name (NVal Z)) (PVar "top") Nil
-compile_n (NVal (S n)) = RepInp (build_name (NVal (S n))) (PVar "top") ((Out "top" unitE)  :|: (Out (build_name (NVal n)) (EVar "top"))) :|: (compile_n (NVal n))
-compile_n (n1 :+: n2)  = let chanplus = (build_name (n1 :+: n2)) in
-                         let chan1 = (build_name n1) in
-                         let chan2 = (build_name n2) in
-                         newChs [chan1, chan2] (TChan unitT) $
-                         (RepInp chanplus (PVar "top") ((Out chan1 (EVar "top")) :|: (Out chan2 (EVar "top"))) :|: (compile_n n1) :|: (compile_n n2))
+compile_n :: IO Name -> NatExp -> IO Pi
+compile_n fresh (NVar name)  = undefined
+compile_n fresh (NVal Z)     = do return (RepInp (build_name (NVal Z)) (PVar "top") Nil)
+compile_n fresh (NVal (S n)) = do
+                            q <- compile_n fresh (NVal n)
+                            return (RepInp (build_name (NVal (S n))) (PVar "top") ((Out "top" unitE)  :|: (Out (build_name (NVal n)) (EVar "top"))) :|: q)
+compile_n fresh (n1 :+: n2)  = do
+                         q1 <- compile_n fresh n1
+                         q2 <- compile_n fresh n2
+                         let chanplus = (build_name (n1 :+: n2))
+                         let chan1 = (build_name n1)
+                         let chan2 = (build_name n2)
+                         return (newChs [chan1, chan2] (TChan unitT) $ (RepInp chanplus (PVar "top") ((Out chan1 (EVar "top")) :|: (Out chan2 (EVar "top"))) :|: q1 :|: q2))
+compile_n fresh (n1 :*: n2)  = do
+                         pchan <- fresh
+                         q1 <- compile_n fresh n1
+                         q2 <- compile_n fresh n2
+                         let chanmul = (build_name (n1 :*: n2))
+                         let chan1 = (build_name n1)
+                         let chan2 = (build_name n2)
+                         return (newChs [chan1, chan2] (TChan unitT) $ New pchan unitT $ (RepInp chanmul (PVar "top") ((Out chan1 (EVar pchan)) :|: (RepInp pchan unitP (Out chan2 (EVar "top")))) :|: q1 :|: q2))
+
 
 --((Out (build_name n1) (PVar "top")) :|: (Out (build_name n2) (PVar "top")))
 
@@ -40,6 +63,7 @@ build_name (NVar name)  = name
 build_name (NVal (Z))   = "x"
 build_name (NVal (S n)) = (build_name (NVal n)) ++ "#"
 build_name (n1 :+: n2)  = build_name n1 ++ "+" ++ build_name n2
+build_name (n1 :*: n2)  = build_name n1 ++ "*" ++ build_name n2
 
 --Some Helper funcitons:
 --Creates new channels from a list
@@ -81,30 +105,34 @@ getNames (NVar name)    = [build_name (NVar name)]
 getNames (NVal (Z))     = [build_name (NVal Z)]
 getNames (NVal (S n))   = (build_name (NVal (S n))):(getNames (NVal n))
 getNames (n1 :+: n2)    = (getNames n1) ++ (getNames n2)
+getNames (n1 :*: n2)    = (getNames n1) ++ (getNames n2)
 
-start_nat :: NEnv -> NatExp -> IO ()
-start_nat nenv nexp = start pi
-    where
-        topchan = "top"
-        nchan = build_name nexp
-        pi = New topchan unitT $
-             New nchan (TChan unitT) $
-             newChs (getNames nexp) unitT $
-             compile_nenv nenv (compile_n nexp) :|:
-             Out nchan (EVar topchan) :|:
-             RepInp topchan unitP (printer "#")           
+--start_nat :: NEnv -> NatExp -> IO ()
+--start_nat nenv nexp = start pi
+--    where
+--        topchan = "top"
+--        nchan = build_name nexp
+--        pi = New topchan unitT $
+--             New nchan (TChan unitT) $
+--             newChs (getNames nexp) unitT $
+--             compile_nenv nenv (compile_n nexp) :|:
+--             Out nchan (EVar topchan) :|:
+--             RepInp topchan unitP (printer "#")           
 
 start_nat_simple :: NEnv -> NatExp -> IO ()
-start_nat_simple nenv nexp = start pi
-    where
-        topchan = "top"
-        nchan = build_name nexp
-        pi = New topchan unitT $
+start_nat_simple nenv nexp = do
+    r <- R.newIORef 0
+    let fresh = nameGenerator r
+    q <- compile_n fresh nexp
+    let topchan = "top"
+    let nchan = build_name nexp
+    let pi = New topchan unitT $
              New nchan (TChan unitT) $
              newChs (getNames nexp) unitT $
-             compile_n nexp :|:
+             q :|:
              Out nchan (EVar topchan) :|:
              RepInp topchan unitP (printer "#")  
+    start pi
 
 --start_nat nenv (NVar Z) = start Nil
 --start_nat nenv (NVar (S n)) = start pi

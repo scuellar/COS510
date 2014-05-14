@@ -4,6 +4,7 @@ import qualified Data.Map as M
 
 zero = NVal (Z)
 one = NVal (S Z)
+two = NVal (S $ S Z)
 
 env1 = M.empty
 
@@ -24,7 +25,7 @@ run_tests ts = run_t 1 ts
     run_t n []     = return ()
     run_t n ((env,b):ts) = do
       putStr ("test " ++ show n ++ ":\n")
-      start_nat env b
+      start_nat_simple env b
       putStr "\n"
       run_t (n+1) ts
 
