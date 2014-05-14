@@ -48,12 +48,13 @@ compile_n fresh (n1 :+: n2)  = do
                          return (newChs [chan1, chan2] (TChan unitT) $ (RepInp chanplus (PVar "top") ((Out chan1 (EVar "top")) :|: (Out chan2 (EVar "top"))) :|: q1 :|: q2))
 compile_n fresh (n1 :*: n2)  = do
                          pchan <- fresh
+                         top <- fresh
                          q1 <- compile_n fresh n1
                          q2 <- compile_n fresh n2
                          let chanmul = (build_name (n1 :*: n2))
                          let chan1 = (build_name n1)
                          let chan2 = (build_name n2)
-                         return (newChs [chan1, chan2] (TChan unitT) $ New pchan unitT $ (RepInp chanmul (PVar "top") ((Out chan1 (EVar pchan)) :|: (RepInp pchan unitP (Out chan2 (EVar "top")))) :|: q1 :|: q2))
+                         return (newChs [chan1, chan2] (TChan unitT) $ New pchan unitT $ (RepInp chanmul (PVar top) ((Out chan1 (EVar pchan)) :|: (RepInp pchan unitP (Out chan2 (EVar top)))) :|: q1 :|: q2))
 
 
 --((Out (build_name n1) (PVar "top")) :|: (Out (build_name n2) (PVar "top")))
