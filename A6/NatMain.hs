@@ -5,19 +5,28 @@ import qualified Data.Map as M
 zero = NVal (Z)
 one = NVal (S Z)
 two = NVal (S $ S Z)
+three = NVal (S $ S $ S Z)
+four = NVal (S $ S $ S $ S Z)
+five = NVal (S $ S $ S $ S $ S Z)
 
 env1 = M.empty
 
 type Test = (NEnv, NatExp)
 
-test1 = (env1, zero)
-test2 = (env1, one)
-test3 = (env1, zero :+: zero)
-test4 = (env1, zero :+: one)
-test5 = (env1, one :+: zero)
-test6 = (env1, one :+: one)
+test1  = (env1, zero)
+test2  = (env1, one)
+test3  = (env1, zero :+: zero)
+test4  = (env1, zero :+: one)
+test5  = (env1, one :+: zero)
+test6  = (env1, one :+: one)
+test7  = (env1, zero :*: zero)
+test8  = (env1, zero :*: one) 
+test9  = (env1, one :*: zero)
+test10 = (env1, one :+: (zero :*: two))
+test11 = (env1, two :*: (one :+: zero))
 
-tests = [test1, test2, test3, test4, test5, test6]
+
+tests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11]
 
 run_tests :: [Test] -> IO ()
 run_tests ts = run_t 1 ts
