@@ -138,11 +138,3 @@ start_nat_simple nenv nexp = do
              RepInp topchan unitP (printer "#")  
     start pi
 
---start_nat nenv (NVar Z) = start Nil
---start_nat nenv (NVar (S n)) = start pi
---    where
---        nchan = build_name n
---        topchan = "top"
---        pi = NewChs (recNewChs (S n)) (TChan UnitT) $
---             compile_nenv nenv (compile_n topchan (NVar (S n))) :|:
---             RepInp topchan unitP (printer "#")
