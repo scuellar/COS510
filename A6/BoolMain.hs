@@ -1,5 +1,6 @@
-module BoolMain where
+--module BoolMain where
 import BoolExp
+import Pi
 import qualified Data.Map as M 
 
 t = BVal True

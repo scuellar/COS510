@@ -1,5 +1,6 @@
-module NatMain where
+--module NatMain where
 import NatExp
+import Pi
 import qualified Data.Map as M 
 
 zero = NVal (Z)
