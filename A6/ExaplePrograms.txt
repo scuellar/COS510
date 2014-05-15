@@ -8,3 +8,12 @@ Nil
 
 (New "ch1" unitT (New "ch2" (TChan unitT) ((Out "ch2" (EVar "ch1")) :|:  Embed (\s -> putStr $ "Second thred right over here") (Inp "ch2" (PVar "x") (Embed (\s -> putStr $ show(s M.! "x")) Nil)))))
 
+
+Behold!
+let pi = New "x0" (TChan (TTup [TChan unitT, TChan unitT])) (( New "n1" (TChan unitT) $ New "n2" (TChan unitT) ((Out "x0" (ETup [EVar "n1",EVar "n2"]) :|: (Inp "n1" (PVar "x") (Out "n2" (EVar "x")))))) :|: (Inp "x0" Wild (printer "done!")))
+
+let pi3 = New "x0" (TChan (TTup [TChan unitT, TChan unitT])) ( New "n1" (TChan unitT) $ New "n2" (TChan unitT) ((Out "x0" (ETup [EVar "n1",EVar "n2"]))))
+
+let pi9 = New "x0" (TChan (TTup [unitT, unitT])) (Out "x0" (ETup [unitE,unitE]))
+
+let pi0 = New "x0" (TChan (TTup [unitT])) (Out "x0" (ETup [unitE])) 

@@ -13,6 +13,7 @@ import Control.Concurrent
   ( forkIO, forkIOWithUnmask, ThreadId, myThreadId 
   , threadDelay, yield, Chan, newChan, readChan, writeChan)
 
+import System.Timeout
 import Control.Concurrent.MVar
 import Control.Applicative
 import Control.Monad
@@ -47,6 +48,15 @@ fork_joinIO a
 -- Fork a new thread to execute each of the actions in [as]. 
 -- Block until all the actions are completed.
 
+parallel' :: [IO ()] -> IO ()       
+parallel' as 
+  = case as of
+      [] -> return ()
+      a : as' -> 
+        do mvar <- fork_joinIO a
+           parallel as'
+           takeMVar mvar
+
 parallel :: [IO ()] -> IO ()       
 parallel as 
   = case as of
@@ -54,6 +64,7 @@ parallel as
       a : as' -> 
         do mvar <- fork_joinIO a
            parallel as'
-           takeMVar mvar
+           timeout 2000000 (takeMVar mvar)
+           return ()
 
 

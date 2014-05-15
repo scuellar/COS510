@@ -33,28 +33,31 @@ nameGenerator counter = do
 -- TASK!
 -- compile_n tchan fchan b
 -- returns a process p that when juxtaposed with a compatible environment
-compile_n :: IO Name -> NatExp -> IO Pi
-compile_n fresh (NVar name)  = undefined
-compile_n fresh (NVal Z)     = do return (RepInp (build_name (NVal Z)) (PVar "top") Nil)
-compile_n fresh (NVal (S n)) = do
-                            q <- compile_n fresh (NVal n)
-                            return (RepInp (build_name (NVal (S n))) (PVar "top") ((Out "top" unitE)  :|: (Out (build_name (NVal n)) (EVar "top"))) :|: q)
-compile_n fresh (n1 :+: n2)  = do
-                         q1 <- compile_n fresh n1
-                         q2 <- compile_n fresh n2
-                         let chanplus = (build_name (n1 :+: n2))
-                         let chan1 = (build_name n1)
-                         let chan2 = (build_name n2)
-                         return (newChs [chan1, chan2] (TChan unitT) $ (RepInp chanplus (PVar "top") ((Out chan1 (EVar "top")) :|: (Out chan2 (EVar "top"))) :|: q1 :|: q2))
-compile_n fresh (n1 :*: n2)  = do
+compile_n :: IO Name -> Name -> NatExp -> IO Pi
+compile_n fresh ch (NVar name)  = undefined
+compile_n fresh ch (NVal Z)     = do
+  top <- fresh
+  return $ Inp ch Wild Nil
+compile_n fresh ch (NVal (S n)) = do
+  top <- fresh
+  next_ch <- fresh
+  q <- compile_n fresh next_ch (NVal n)
+  return $ New next_ch unitT (RepInp ch (PVar top) ((Out top unitE)  :|: (Out next_ch (EVar top))) :|: q)
+compile_n fresh ch (n1 :+: n2)  = do
+  ch1 <- fresh
+  ch2 <- fresh
+  top <- fresh
+  q1 <- compile_n fresh ch1 n1
+  q2 <- compile_n fresh ch2 n2
+  return (newChs [ch1, ch2] (TChan unitT) $ (RepInp ch (PVar top) ((Out ch1 (EVar top)) :|: (Out ch2 (EVar top))) :|: q1 :|: q2))
+compile_n fresh ch (n1 :*: n2)  = do
                          pchan <- fresh
+                         ch1 <- fresh
+                         ch2 <- fresh
                          top <- fresh
-                         q1 <- compile_n fresh n1
-                         q2 <- compile_n fresh n2
-                         let chanmul = (build_name (n1 :*: n2))
-                         let chan1 = (build_name n1)
-                         let chan2 = (build_name n2)
-                         return (newChs [chan1, chan2] (TChan unitT) $ New pchan unitT $ (RepInp chanmul (PVar top) ((Out chan1 (EVar pchan)) :|: (RepInp pchan unitP (Out chan2 (EVar top)))) :|: q1 :|: q2))
+                         q1 <- compile_n fresh ch1 n1
+                         q2 <- compile_n fresh ch2 n2
+                         return (newChs [ch1, ch2] (TChan unitT) $ New pchan unitT $ (RepInp ch (PVar top) ((Out ch1 (EVar pchan)) :|: (RepInp pchan unitP (Out ch2 (EVar top)))) :|: q1 :|: q2))
 
 
 --((Out (build_name n1) (PVar "top")) :|: (Out (build_name n2) (PVar "top")))
@@ -124,12 +127,12 @@ start_nat_simple :: NEnv -> NatExp -> IO ()
 start_nat_simple nenv nexp = do
     r <- R.newIORef 0
     let fresh = nameGenerator r
-    q <- compile_n fresh nexp
     let topchan = "top"
     let nchan = build_name nexp
+    q <- compile_n fresh nchan nexp
     let pi = New topchan unitT $
              New nchan (TChan unitT) $
-             newChs (getNames nexp) unitT $
+             --newChs (getNames nexp) unitT $
              q :|:
              Out nchan (EVar topchan) :|:
              RepInp topchan unitP (printer "#")  

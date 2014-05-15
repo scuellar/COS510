@@ -26,6 +26,7 @@ test9 = (env3, Not (BVar y :&&: BVar x))
 test10 = (env3, BVar y :||: (BVar x :&&: BVar x))
 
 tests = [test1, test2, test3, test4, test5]
+tests2 = [test6, test7, test8, test9, test10]
 
 run_tests :: [Test] -> IO ()
 run_tests ts = run_t 1 ts
