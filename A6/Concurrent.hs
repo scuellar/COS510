@@ -19,6 +19,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import Control.Exception
+import System.Timeout
 
 -- A version of the standard library [forkFinally] that doesn't
 -- mask asynchronous exceptions.
@@ -64,6 +65,7 @@ parallel as
       a : as' -> 
         do mvar <- fork_joinIO a
            parallel as'
+           --takeMVar mvar
            timeout 2000000 (takeMVar mvar)
            return ()
 
