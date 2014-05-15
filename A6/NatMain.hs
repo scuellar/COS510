@@ -25,9 +25,10 @@ test8  = (env1, zero :*: one)
 test9  = (env1, one :*: zero)
 test10 = (env1, one :+: (zero :*: two))
 test11 = (env1, two :*: (one :+: zero))
+test12 = (env1, two :*: (two :*: (zero :*: zero)))
+test13 = (env1, two :*: (two :+: (zero :*: zero)))
 
-
-tests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11]
+tests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12]
 
 run_tests :: [Test] -> IO ()
 run_tests ts = run_t 1 ts
