@@ -51,7 +51,7 @@ run_tests ts = run_t 1 ts
     run_t n []     = return ()
     run_t n ((env,b,text):ts) = do
       putStr ("test " ++ show n ++ ":\n")
-      putStrLn (show text)
+      putStrLn (text)
       start_nat env b
       putStr "\n"
       run_t (n+1) ts
