@@ -9,7 +9,8 @@ did a bit of extra credit. The regular assignment is described in
 part I. and the extra credit is described in part II.  
 
 I. The Normal Assignment 
-All of PiMain, BoolMain, and LamMain are executables that show the abilities of Pi.hs, BoolExp.hs, and Lam.hs, respectively. 
+All of PiMain, BoolMain, and LamMain are executables that show the 
+abilities of Pi.hs, BoolExp.hs, and Lam.hs, respectively. 
 
 To execute all these, you can do the following commands:
 
@@ -19,6 +20,37 @@ $ ./PiMain
 $ ./BoolMain
 $ ./LamMain
 
-In between these commands, you will see printouts of the tests being executed and their final answers. 
+In between these commands, you will see printouts of the tests 
+being executed and their final answers. 
 
-II. The Extra Credit 
+II. The Extra Credit
+
+For the extra credit, we implemented Natural Expressions and 
+their ability to add, multiply, and use variables. 
+
+The files related to the extra credit are: NatExp.hs, and NatMain.hs
+
+(Note that the Makefile already makes NatMain for you and all you
+need to do is execute NatMain after 'make'-ing)
+
+To execute NatMain, you can do the following commands:
+
+$ make clean
+$ make
+$ ./NatMain
+
+This command will make a few tests execute. 
+
+While the extra credit recommendations in Final.pdf suggested using 'X'
+to denote each unit number, we used '#' instead, and each one is printed
+in a new line. Therefore:
+
+#
+#
+#
+#
+
+is equal to 4. 
+
+
+
