@@ -10,7 +10,10 @@ three = NVal (S $ S $ S Z)
 four = NVal (S $ S $ S $ S Z)
 five = NVal (S $ S $ S $ S $ S Z)
 
-env1 = M.empty
+zz = "zz"
+
+env1 = M.empty :: NEnv
+env2 = M.insert zz three env1
 
 type Test = (NEnv, NatExp)
 
@@ -28,7 +31,7 @@ test11 = (env1, two :*: (one :+: zero))
 test12 = (env1, two :*: (two :*: (zero :*: zero)))
 test13 = (env1, two :*: (two :+: (zero :*: zero)))
 
-tests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12]
+tests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13]
 
 run_tests :: [Test] -> IO ()
 run_tests ts = run_t 1 ts
@@ -36,7 +39,7 @@ run_tests ts = run_t 1 ts
     run_t n []     = return ()
     run_t n ((env,b):ts) = do
       putStr ("test " ++ show n ++ ":\n")
-      start_nat_simple env b
+      start_nat env b
       putStr "\n"
       run_t (n+1) ts
 
