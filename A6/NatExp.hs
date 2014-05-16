@@ -36,7 +36,7 @@ nameGenerator counter = do
 compile_n :: IO Name -> Name -> NatExp -> IO Pi
 compile_n fresh ch (NVar name)  = do
   top <- fresh
-  putStrLn ("var_"++(build_name (NVar name)))
+  --putStrLn ("var_"++(build_name (NVar name)))
   return $ RepInp ch (PVar top) (Out ("var_"++(build_name (NVar name))) (EVar top)) 
 compile_n fresh ch (NVal Z)     = do
   --top <- fresh
@@ -45,10 +45,10 @@ compile_n fresh ch (NVal (S n)) = do
   top <- fresh
   next_ch <- fresh
   q <- compile_n fresh next_ch (NVal n)
-  putStrLn $ show (S n)
-  putStrLn $ "ch: " ++ ch
-  putStrLn $ "top: " ++ top
-  putStrLn $ "next_ch: " ++ next_ch
+  --putStrLn $ show (S n)
+  --putStrLn $ "ch: " ++ ch
+  --putStrLn $ "top: " ++ top
+  --putStrLn $ "next_ch: " ++ next_ch
   return $ New next_ch unitT (RepInp ch (PVar top) ((Out top unitE)  :|: (Out next_ch (EVar top))) :|: q)
 compile_n fresh ch (n1 :+: n2)  = do
   ch1 <- fresh
@@ -118,9 +118,9 @@ compile_nenv fresh nenv p = compile_nlist (M.toList nenv) where
         newchan <- fresh
         var <- compile_n fresh newchan n
         q <- compile_nlist lpair
-        putStrLn ("reply"++str)
-        putStrLn ("var_"++str)
-        putStrLn $ show n
+        --putStrLn ("reply"++str)
+        --putStrLn ("var_"++str)
+        --putStrLn $ show n
         return $ New ("var_"++str) (TChan unitT) $
                  New newchan (TChan unitT) $
                  ((RepInp ("var_"++str) (PVar ("reply"++str)) (var :|: (Out newchan (EVar ("reply"++str))) )) :|: q)
@@ -132,17 +132,6 @@ getNames (NVal (S n))   = (build_name (NVal (S n))):(getNames (NVal n))
 getNames (n1 :+: n2)    = (getNames n1) ++ (getNames n2)
 getNames (n1 :*: n2)    = (getNames n1) ++ (getNames n2)
 
---start_nat :: NEnv -> NatExp -> IO ()
---start_nat nenv nexp = start pi
---    where
---        topchan = "top"
---        nchan = build_name nexp
---        pi = New topchan unitT $
---             New nchan (TChan unitT) $
---             newChs (getNames nexp) unitT $
---             compile_nenv nenv (compile_n nexp) :|:
---             Out nchan (EVar topchan) :|:
---             RepInp topchan unitP (printer "#")           
 start_nat :: NEnv -> NatExp -> IO ()
 start_nat nenv nexp = do
     r <- R.newIORef 0

@@ -11,9 +11,16 @@ four = NVal (S $ S $ S $ S Z)
 five = NVal (S $ S $ S $ S $ S Z)
 
 zz = "zz"
+opo = "opo"
+ftt = "ftt"
+
+oneplusone = one :+: one
+fivetimesthree = five :*: three
 
 env1 = M.empty :: NEnv
 env2 = M.insert zz three env1
+env3 = M.insert opo oneplusone env2
+env4 = M.insert ftt fivetimesthree env3
 
 type Test = (NEnv, NatExp)
 
@@ -30,8 +37,11 @@ test10 = (env1, one :+: (zero :*: two))
 test11 = (env1, two :*: (one :+: zero))
 test12 = (env1, two :*: (two :*: (zero :*: zero)))
 test13 = (env1, two :*: (two :+: (zero :*: zero)))
+test14 = (env2, (NVar zz))
+test15 = (env3, (NVar opo))
+test16 = (env4, (NVar ftt))
 
-tests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13]
+tests = [test1, test2, test3, test4, test5, test6, test7, test8, test9, test10, test11, test12, test13, test14, test15, test16]
 
 run_tests :: [Test] -> IO ()
 run_tests ts = run_t 1 ts
