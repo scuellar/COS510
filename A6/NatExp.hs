@@ -46,8 +46,9 @@ compile_n fresh ch (NVal (S n)) = do
   next_ch <- fresh
   q <- compile_n fresh next_ch (NVal n)
   putStrLn $ show (S n)
-  putStrLn ch
-  putStrLn top
+  putStrLn $ "ch: " ++ ch
+  putStrLn $ "top: " ++ top
+  putStrLn $ "next_ch: " ++ next_ch
   return $ New next_ch unitT (RepInp ch (PVar top) ((Out top unitE)  :|: (Out next_ch (EVar top))) :|: q)
 compile_n fresh ch (n1 :+: n2)  = do
   ch1 <- fresh
@@ -114,12 +115,15 @@ compile_nenv :: IO Name -> NEnv -> Pi -> IO Pi
 compile_nenv fresh nenv p = compile_nlist (M.toList nenv) where
     compile_nlist [] = do return $ p
     compile_nlist ((str, n):lpair) = do 
-        var <- compile_n fresh ("reply"++str) n
+        newchan <- fresh
+        var <- compile_n fresh newchan n
         q <- compile_nlist lpair
         putStrLn ("reply"++str)
         putStrLn ("var_"++str)
         putStrLn $ show n
-        return $ New ("var_"++str) (TChan unitT) ((RepInp ("var_"++str) (PVar ("reply"++str)) (var :|: (Out ("reply"++str) unitE) )) :|: q)
+        return $ New ("var_"++str) (TChan unitT) $
+                 New newchan (TChan unitT) $
+                 ((RepInp ("var_"++str) (PVar ("reply"++str)) (var :|: (Out newchan (EVar ("reply"++str))) )) :|: q)
 
 getNames :: NatExp -> [Name]
 getNames (NVar name)    = [build_name (NVar name)]
