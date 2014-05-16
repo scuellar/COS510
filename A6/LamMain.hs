@@ -1,4 +1,4 @@
-module LamMain where
+--module LamMain where
 import Lam
 import qualified Data.Map as M 
 

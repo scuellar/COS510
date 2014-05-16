@@ -1,2 +1,24 @@
 Please explain any unusual elements of your solution here or what you
 did for extra credit.  (Extra credit is not necessary.)
+
+README.txt
+Partners: Jonathan Balkind, Santiago Cuellar, Elba Garza
+
+Introduction: We implemented all of the regular assignment and also 
+did a bit of extra credit. The regular assignment is described in 
+part I. and the extra credit is described in part II.  
+
+I. The Normal Assignment 
+All of PiMain, BoolMain, and LamMain are executables that show the abilities of Pi.hs, BoolExp.hs, and Lam.hs, respectively. 
+
+To execute all these, you can do the following commands:
+
+$ make clean
+$ make
+$ ./PiMain
+$ ./BoolMain
+$ ./LamMain
+
+In between these commands, you will see printouts of the tests being executed and their final answers. 
+
+II. The Extra Credit 
